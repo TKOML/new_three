@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media'])) {
     $targetFile = $uploadDir . $fileName;
     $description = trim($_POST['description'] ?? '');
     $tags = trim($_POST['tags'] ?? '');
-    $allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    $allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'audio/mp3', 'audio/mpeg'];
     $maxSize = 200 * 1024 * 1024; // 200MB
     if (!in_array($_FILES['media']['type'], $allowedTypes)) {
-        $error = '仅支持mp4/webm/ogg格式视频';
+        $error = '仅支持mp4/webm/ogg视频或mp3音频';
     } elseif ($_FILES['media']['size'] > $maxSize) {
         $error = '文件过大，最大支持200MB';
     } elseif (move_uploaded_file($_FILES['media']['tmp_name'], $targetFile)) {
@@ -773,7 +773,7 @@ $is_login = isset($_SESSION['user_id']);
         <form id="upload-form" method="post" enctype="multipart/form-data" style="background:linear-gradient(135deg,#f3e8ff 0%,#e0c3fc 100%);padding:32px 28px;border-radius:18px;box-shadow:0 8px 48px 0 rgba(162,89,230,0.18),0 1.5px 8px rgba(162,89,230,0.10);min-width:340px;max-width:96vw;display:flex;flex-direction:column;gap:18px;position:relative;">
             <span style="position:absolute;right:18px;top:12px;font-size:1.5em;cursor:pointer;color:#a259e6;transition:color 0.18s;" onmouseover="this.style.color='#1976d2'" onmouseout="this.style.color='#a259e6'" onclick="closeUploadModal()">&times;</span>
             <h2 style="text-align:center;color:#a259e6;margin-bottom:8px;letter-spacing:1px;">上传视频</h2>
-            <input type="file" name="media" accept="video/mp4,video/webm,video/ogg" required style="padding:10px 0 10px 0;border-radius:8px;border:1.5px solid #b0bec5;background:#fff;">
+            <input type="file" name="media" accept="video/mp4,video/webm,video/ogg,audio/mp3,audio/mpeg" required style="padding:10px 0 10px 0;border-radius:8px;border:1.5px solid #b0bec5;background:#fff;">
             <input type="text" name="description" placeholder="视频描述（可选）" maxlength="100" style="padding:10px 14px;border-radius:8px;border:1.5px solid #b0bec5;background:#f8fafc;">
             <input type="text" name="tags" placeholder="标签（逗号分隔，可选）" maxlength="50" style="padding:10px 14px;border-radius:8px;border:1.5px solid #b0bec5;background:#f8fafc;">
             <button type="submit" style="background:linear-gradient(90deg,#a259e6 60%,#42a5f5 100%);color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.08em;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(162,89,230,0.10);transition:background 0.18s;">上传</button>
