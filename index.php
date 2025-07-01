@@ -194,10 +194,13 @@ $is_login = isset($_SESSION['user_id']);
             width:100vw;max-width:100vw;margin-top:80px;height:calc(100vh - 80px);
             transition:all 0.4s cubic-bezier(.4,0,.2,1);
         }
-        .dy-pc-center {
-            flex:1 1 0%; min-width:0; height:100%; display:flex;flex-direction:column;align-items:center;justify-content:center;
-            width:100vw; max-width:100vw;
-        }
+        .dy-pc-sidenav {
+            width:90px;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:20px;background:rgba(255,255,255,0.92);border-radius:18px;margin-right:24px;box-shadow:0 2px 12px rgba(162,89,230,0.06);backdrop-filter:blur(4px);}
+        .dy-pc-sidenav-item {display:flex;flex-direction:column;align-items:center;gap:6px;color:#a259e6;font-size:1.3em;cursor:pointer;padding:14px 0;width:100%;border-radius:12px;transition:color 0.18s,background 0.18s; text-decoration:none;}
+        .dy-pc-sidenav-item.active,.dy-pc-sidenav-item:hover {background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;}
+        .dy-pc-sidenav-item span {font-size:0.98em;}
+        .dy-pc-center {flex:1 1 0%; min-width:0; height:100%; display:flex;flex-direction:column;align-items:center;justify-content:center;
+            width:100vw; max-width:100vw;}
         .dy-pc-video-card {position:relative;margin:0;background:none;box-shadow:none;padding:0;width:100%;max-width:none;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
         .dy-pc-video-wrap {position:relative;width:100%;height:90vh;max-height:90vh;display:flex;align-items:center;justify-content:center;}
         .dy-pc-video-wrap video {
@@ -290,7 +293,7 @@ $is_login = isset($_SESSION['user_id']);
         .dy-pc-comment-list {
             flex: 1;
             overflow-y: auto;
-            padding: 0 18px;
+            padding: 16px 18px 0 18px;
         }
         .dy-pc-comment-item {
             background:rgba(243,232,255,0.7);
@@ -359,11 +362,6 @@ $is_login = isset($_SESSION['user_id']);
             background:none;border:none;font-size:1.5em;color:#a259e6;cursor:pointer;transition:color 0.18s;float:right;
         }
         .dy-pc-comment-close:hover {color:#8f5fe8;}
-        .dy-pc-sidenav {
-            width:90px;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:20px;background:rgba(255,255,255,0.92);border-radius:18px;margin-right:24px;box-shadow:0 2px 12px rgba(162,89,230,0.06);backdrop-filter:blur(4px);}
-        .dy-pc-sidenav-item {display:flex;flex-direction:column;align-items:center;gap:6px;color:#a259e6;font-size:1.3em;cursor:pointer;padding:14px 0;width:100%;border-radius:12px;transition:color 0.18s,background 0.18s;}
-        .dy-pc-sidenav-item.active,.dy-pc-sidenav-item:hover {background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;}
-        .dy-pc-sidenav-item span {font-size:0.98em;}
         .dy-pc-header {
             height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:rgba(255,255,255,0.95);box-shadow:0 2px 12px rgba(162,89,230,0.08);border-bottom:1.5px solid #e0c3fc;position:fixed;top:0;left:0;width:100vw;z-index:100;backdrop-filter:blur(8px);
         }
@@ -552,6 +550,68 @@ $is_login = isset($_SESSION['user_id']);
         .gender-radio-label input[type="radio"]:focus + .custom-radio {
             box-shadow: 0 0 0 2px #e0c3fc;
         }
+        /* 新增切换按钮样式 */
+        .switch-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);
+            color: #fff;
+            font-size: 1.3em;
+            border: none;
+            margin: 0 10px;
+            box-shadow: 0 2px 8px rgba(162,89,230,0.10);
+            cursor: pointer;
+            transition: background 0.18s, transform 0.12s;
+            outline: none;
+            text-decoration: none;
+        }
+        .switch-btn:hover {
+            background: linear-gradient(135deg,#8f5fe8 60%,#a259e6 100%);
+            transform: scale(1.08);
+        }
+        .seek-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#e0c3fc 60%,#a259e6 100%);
+            color: #fff;
+            font-size: 1.1em;
+            border: none;
+            margin: 0 6px;
+            box-shadow: 0 2px 8px rgba(162,89,230,0.10);
+            cursor: pointer;
+            transition: background 0.18s, transform 0.12s;
+            outline: none;
+            text-decoration: none;
+        }
+        .seek-btn:hover {
+            background: linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);
+            transform: scale(1.08);
+        }
+        .switch-toast {
+            position: fixed;
+            left: 50%;
+            top: 18%;
+            transform: translate(-50%, 0);
+            background: rgba(162,89,230,0.95);
+            color: #fff;
+            padding: 14px 32px;
+            border-radius: 18px;
+            font-size: 1.15em;
+            font-weight: 600;
+            z-index: 99999;
+            box-shadow: 0 2px 16px rgba(162,89,230,0.13);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
     </style>
 </head>
 <body style="background:#f8f3ff;min-height:100vh;">
@@ -691,6 +751,21 @@ $is_login = isset($_SESSION['user_id']);
             });
         }
     }
+    function showSwitchToast(msg) {
+        var toast = document.getElementById('switch-toast');
+        toast.innerText = msg;
+        toast.style.opacity = 1;
+        setTimeout(function(){ toast.style.opacity = 0; }, 1200);
+    }
+    document.querySelectorAll('.switch-btn').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+            if (btn.title === '上一条') {
+                showSwitchToast('已切换到上一条');
+            } else if (btn.title === '下一条') {
+                showSwitchToast('已切换到下一条');
+            }
+        });
+    });
     </script>
     <!-- 上传弹窗，仅登录用户可见 -->
     <?php if ($is_login): ?>
@@ -724,8 +799,8 @@ $is_login = isset($_SESSION['user_id']);
     <div class="dy-pc-main">
         <!-- 左侧导航 -->
         <div class="dy-pc-sidenav">
-            <div class="dy-pc-sidenav-item active"><i class="fa-solid fa-film"></i><span>视频</span></div>
-            <div class="dy-pc-sidenav-item"><i class="fa-solid fa-music"></i><span>音频</span></div>
+            <a class="dy-pc-sidenav-item active" href="index.php"><i class="fa-solid fa-film"></i><span>视频</span></a>
+            <a class="dy-pc-sidenav-item" href="#"><i class="fa-solid fa-music"></i><span>音频</span></a>
             <a class="dy-pc-sidenav-item" href="user_center.php" style="cursor:pointer;"><i class="fa-solid fa-user"></i><span>我的</span></a>
             <?php if ($is_login): ?>
                 <a href="logout.php" class="dy-pc-sidenav-item" style="color:#a259e6;"><i class="fa-solid fa-sign-out-alt"></i><span>退出</span></a>
@@ -739,11 +814,23 @@ $is_login = isset($_SESSION['user_id']);
                         <?php if (preg_match('/\.(mp4|webm|ogg)$/i', $mediaFile)): ?>
                             <video id="media" src="<?= htmlspecialchars($mediaUrl) ?>" playsinline></video>
                             <div class="custom-controls" id="custom-controls">
+                                <?php
+                                $files = array_values(array_filter(scandir(__DIR__ . '/uploads'), function($f) {
+                                    return preg_match('/\.(mp4|webm|ogg)$/i', $f);
+                                }));
+                                $currentIndex = array_search($mediaFile, $files);
+                                $prevFile = ($currentIndex !== false && $currentIndex > 0) ? $files[$currentIndex-1] : null;
+                                $nextFile = ($currentIndex !== false && $currentIndex < count($files)-1) ? $files[$currentIndex+1] : null;
+                                ?>
+                                <a href="?file=<?= urlencode($prevFile) ?>" class="switch-btn" <?= $prevFile?'':'style="opacity:.3;pointer-events:none;"' ?> title="上一条"><i class="fa-solid fa-angle-left"></i></a>
+                                <button type="button" class="seek-btn" id="seek-backward" title="快退10秒"><i class="fa-solid fa-backward"></i></button>
                                 <button id="play-pause-btn" class="play-pause-btn"><i class="fa-solid fa-play"></i></button>
                                 <div class="progress-bar-wrap">
                                     <input type="range" id="progress-bar" value="0" min="0" max="100" step="0.1">
                                     <span id="current-time">00:00</span> / <span id="duration">00:00</span>
                                 </div>
+                                <button type="button" class="seek-btn" id="seek-forward" title="快进10秒"><i class="fa-solid fa-forward"></i></button>
+                                <a href="?file=<?= urlencode($nextFile) ?>" class="switch-btn" <?= $nextFile?'':'style="opacity:.3;pointer-events:none;"' ?> title="下一条"><i class="fa-solid fa-angle-right"></i></a>
                             </div>
                             <script>
                             const video = document.getElementById('media');
@@ -769,11 +856,26 @@ $is_login = isset($_SESSION['user_id']);
                                 video.currentTime = progressBar.value;
                             });
                             playBtn.onclick = function() {
-                                if (video.paused) { video.play(); playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; }
-                                else { video.pause(); playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; }
+                                if (video.paused) {
+                                    video.play();
+                                    playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                                    showSwitchToast('已播放');
+                                } else {
+                                    video.pause();
+                                    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                                    showSwitchToast('已暂停');
+                                }
                             };
                             video.addEventListener('play', function(){ playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; });
                             video.addEventListener('pause', function(){ playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; });
+                            document.getElementById('seek-backward').onclick = function() {
+                                var video = document.getElementById('media');
+                                if (video) video.currentTime = Math.max(0, video.currentTime - 10);
+                            };
+                            document.getElementById('seek-forward').onclick = function() {
+                                var video = document.getElementById('media');
+                                if (video) video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                            };
                             </script>
                         <?php elseif (preg_match('/\.(mp3|wav|aac|m4a)$/i', $mediaFile)): ?>
                             <audio id="media" src="<?= htmlspecialchars($mediaUrl) ?>" style="width:100%;display:block;margin:0 auto;"></audio>
@@ -798,19 +900,6 @@ $is_login = isset($_SESSION['user_id']);
             <?php else: ?>
                 <div class="dy-pc-empty">请上传或选择一个视频进行播放</div>
             <?php endif; ?>
-            <!-- 上下切换视频 -->
-            <div class="dy-pc-switch-bar">
-                <?php
-                $files = array_values(array_filter(scandir(__DIR__ . '/uploads'), function($f) {
-                    return preg_match('/\.(mp4|webm|ogg)$/i', $f);
-                }));
-                $currentIndex = array_search($mediaFile, $files);
-                $prevFile = ($currentIndex !== false && $currentIndex > 0) ? $files[$currentIndex-1] : null;
-                $nextFile = ($currentIndex !== false && $currentIndex < count($files)-1) ? $files[$currentIndex+1] : null;
-                ?>
-                <a href="?file=<?= urlencode($prevFile) ?>" class="dy-pc-switch-btn" <?= $prevFile?'':'style="opacity:.3;pointer-events:none;"' ?>><i class="fa-solid fa-arrow-up"></i> 上一条</a>
-                <a href="?file=<?= urlencode($nextFile) ?>" class="dy-pc-switch-btn" <?= $nextFile?'':'style="opacity:.3;pointer-events:none;"' ?>><i class="fa-solid fa-arrow-down"></i> 下一条</a>
-            </div>
         </div>
         <!-- 右侧评论区 -->
         <div class="dy-pc-comment-panel" id="dy-pc-comment-panel">
@@ -831,7 +920,7 @@ $is_login = isset($_SESSION['user_id']);
                                     </span>
                                 <?php endif; ?>
                             </span>
-                            <span class="dy-pc-comment-user"><i class="fa-solid fa-user"></i> <?= htmlspecialchars($c['username']) ?></span>
+                            <span class="dy-pc-comment-user"> <?= htmlspecialchars($c['username']) ?></span>
                             <span class="dy-pc-comment-time"> <?= htmlspecialchars($c['created_at']) ?></span>
                             <div class="dy-pc-comment-content"> <?= nl2br(htmlspecialchars($c['content'])) ?> </div>
                         </div>
@@ -848,6 +937,7 @@ $is_login = isset($_SESSION['user_id']);
             <?php endif; ?>
         </div>
     </div>
+    <div id="switch-toast" class="switch-toast"></div>
     <script>
         function toggleDyComment() {
             var panel = document.getElementById('dy-pc-comment-panel');
@@ -876,6 +966,9 @@ $is_login = isset($_SESSION['user_id']);
         window.onload = function(){
             document.getElementById('dy-pc-comment-panel').classList.remove('active');
         };
+        document.getElementById('exhibition-btn').addEventListener('click', function(){
+            showSwitchToast('已进入展厅');
+        });
     </script>
 </body>
 </html> 
