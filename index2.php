@@ -9,7 +9,7 @@ if (isset($_SESSION['user_id'])) {
 if (!isset($_SESSION['history'])) {
     $_SESSION['history'] = [];
 }
-// 上传视频时插入 media 表（完全采用 index2.php 逻辑，其余功能不变）
+// 上传视频时插入 media 表
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media'])) {
     $uploadDir = __DIR__ . '/uploads/';
     if (!is_dir($uploadDir)) {
@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media'])) {
         $error = '文件过大，最大支持200MB';
     } elseif (move_uploaded_file($_FILES['media']['tmp_name'], $targetFile)) {
         if ($db && isset($_SESSION['user_id'])) {
+            // 只在上传时插入 media 表
             $media_url = 'uploads/' . $fileName;
             $creator_id = $_SESSION['user_id'];
             $media_type = pathinfo($fileName, PATHINFO_EXTENSION);
@@ -54,23 +55,23 @@ $mediaUrl = $mediaFile ? 'uploads/' . $mediaFile : '';
 // 记录播放历史（GET 方式访问文件时）
 if ($mediaFile) {
     if ($db && isset($_SESSION['user_id'])) {
-        // play_records 逻辑：查找 media_id
+        $db->exec("CREATE TABLE IF NOT EXISTS play_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            media_id INTEGER,
+            played_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+        // 只查找 media_id，不插入 media 表
         $stmt = $db->prepare('SELECT id FROM media WHERE media_url = :url');
         $stmt->bindValue(':url', 'uploads/' . $mediaFile, SQLITE3_TEXT);
         $res = $stmt->execute();
         $row = $res->fetchArray(SQLITE3_ASSOC);
         if ($row && isset($row['id'])) {
             $media_id = $row['id'];
-            $db->exec("CREATE TABLE IF NOT EXISTS play_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                media_id INTEGER,
-                played_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )");
-            $stmt2 = $db->prepare('INSERT INTO play_records (user_id, media_id) VALUES (:uid, :media_id)');
-            $stmt2->bindValue(':uid', $_SESSION['user_id'], SQLITE3_INTEGER);
-            $stmt2->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
-            $stmt2->execute();
+            $stmt = $db->prepare('INSERT INTO play_records (user_id, media_id) VALUES (:uid, :media_id)');
+            $stmt->bindValue(':uid', $_SESSION['user_id'], SQLITE3_INTEGER);
+            $stmt->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
+            $stmt->execute();
         }
     } else {
         if (!in_array($mediaFile, $_SESSION['history'])) {
@@ -78,22 +79,21 @@ if ($mediaFile) {
         }
     }
 }
-// 获取当前 media_id（如有文件）
-$media_id = null;
-if ($mediaFile && $db) {
-    $stmt = $db->prepare('SELECT id FROM media WHERE media_url = :url');
-    $stmt->bindValue(':url', 'uploads/' . $mediaFile, SQLITE3_TEXT);
-    $res = $stmt->execute();
-    $row = $res->fetchArray(SQLITE3_ASSOC);
-    if ($row && isset($row['id'])) {
-        $media_id = $row['id'];
-    }
-}
-// 收藏和喜欢处理（media_id 体系）
+// 收藏和喜欢处理
 if ($db && isset($_SESSION['user_id'])) {
+    // 先查 media_id
+    $media_id = null;
+    if ($mediaFile) {
+        $stmt = $db->prepare('SELECT id FROM media WHERE media_url = :url');
+        $stmt->bindValue(':url', 'uploads/' . $mediaFile, SQLITE3_TEXT);
+        $res = $stmt->execute();
+        $row = $res->fetchArray(SQLITE3_ASSOC);
+        if ($row && isset($row['id'])) {
+            $media_id = $row['id'];
+        }
+    }
     if (isset($_GET['fav']) && isset($_GET['file']) && $media_id) {
         if ($_GET['fav'] === '1') {
-            $db->exec("CREATE TABLE IF NOT EXISTS favorites (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, media_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, media_id))");
             $stmt = $db->prepare('INSERT OR IGNORE INTO favorites (user_id, media_id) VALUES (:uid, :media_id)');
             $stmt->bindValue(':uid', $_SESSION['user_id'], SQLITE3_INTEGER);
             $stmt->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
@@ -124,9 +124,20 @@ if ($db && isset($_SESSION['user_id'])) {
         exit;
     }
 }
-// 稍后再看处理（media_id 体系）
+// 稍后再看处理
 if ($db && isset($_SESSION['user_id'])) {
     $db->exec("CREATE TABLE IF NOT EXISTS watch_later (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, media_id INTEGER, added_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, media_id))");
+    // 先查 media_id
+    $media_id = null;
+    if ($mediaFile) {
+        $stmt = $db->prepare('SELECT id FROM media WHERE media_url = :url');
+        $stmt->bindValue(':url', 'uploads/' . $mediaFile, SQLITE3_TEXT);
+        $res = $stmt->execute();
+        $row = $res->fetchArray(SQLITE3_ASSOC);
+        if ($row && isset($row['id'])) {
+            $media_id = $row['id'];
+        }
+    }
     if (isset($_GET['later']) && isset($_GET['file']) && $media_id) {
         if ($_GET['later'] === '1') {
             $stmt = $db->prepare('INSERT OR IGNORE INTO watch_later (user_id, media_id) VALUES (:uid, :media_id)');
@@ -143,19 +154,40 @@ if ($db && isset($_SESSION['user_id'])) {
         exit;
     }
 }
-// 当前播放文件的收藏/喜欢状态（media_id 体系）
+// 当前播放文件的收藏/喜欢状态
 $is_fav = false;
 $is_like = false;
-if ($db && isset($_SESSION['user_id']) && $media_id) {
-    $fav_res = $db->querySingle("SELECT 1 FROM favorites WHERE user_id = " . intval($_SESSION['user_id']) . " AND media_id = " . intval($media_id));
-    $is_fav = $fav_res ? true : false;
-    $like_res = $db->querySingle("SELECT 1 FROM likes WHERE user_id = " . intval($_SESSION['user_id']) . " AND media_id = " . intval($media_id));
-    $is_like = $like_res ? true : false;
+if ($db && isset($_SESSION['user_id']) && $mediaFile) {
+    // 查 media_id
+    $media_id = null;
+    $stmt = $db->prepare('SELECT id FROM media WHERE media_url = :url');
+    $stmt->bindValue(':url', 'uploads/' . $mediaFile, SQLITE3_TEXT);
+    $res = $stmt->execute();
+    $row = $res->fetchArray(SQLITE3_ASSOC);
+    if ($row && isset($row['id'])) {
+        $media_id = $row['id'];
+    }
+    if ($media_id) {
+        $fav_res = $db->querySingle("SELECT 1 FROM favorites WHERE user_id = " . intval($_SESSION['user_id']) . " AND media_id = " . intval($media_id));
+        $is_fav = $fav_res ? true : false;
+        $db->exec("CREATE TABLE IF NOT EXISTS likes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, media_id INTEGER, liked_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, media_id))");
+        $like_res = $db->querySingle("SELECT 1 FROM likes WHERE user_id = " . intval($_SESSION['user_id']) . " AND media_id = " . intval($media_id));
+        $is_like = $like_res ? true : false;
+    }
 }
-// 评论处理（media_id 体系）
-if ($db && isset($_SESSION['user_id']) && $media_id) {
+// 评论处理
+if ($db && isset($_SESSION['user_id']) && $mediaFile) {
+    // 查 media_id
+    $media_id = null;
+    $stmt = $db->prepare('SELECT id FROM media WHERE media_url = :url');
+    $stmt->bindValue(':url', 'uploads/' . $mediaFile, SQLITE3_TEXT);
+    $res = $stmt->execute();
+    $row = $res->fetchArray(SQLITE3_ASSOC);
+    if ($row && isset($row['id'])) {
+        $media_id = $row['id'];
+    }
     $db->exec("CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, media_id INTEGER, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
-    if (isset($_POST['comment_content']) && trim($_POST['comment_content'])) {
+    if (isset($_POST['comment_content']) && trim($_POST['comment_content']) && $media_id) {
         $stmt = $db->prepare('INSERT INTO comments (user_id, media_id, content) VALUES (:uid, :media_id, :content)');
         $stmt->bindValue(':uid', $_SESSION['user_id'], SQLITE3_INTEGER);
         $stmt->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
@@ -166,11 +198,13 @@ if ($db && isset($_SESSION['user_id']) && $media_id) {
     }
     // 获取评论
     $comments = [];
-    $stmt = $db->prepare('SELECT c.*, u.username FROM comments c LEFT JOIN users u ON c.user_id = u.id WHERE c.media_id = :media_id ORDER BY c.created_at DESC');
-    $stmt->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
-    $res = $stmt->execute();
-    while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-        $comments[] = $row;
+    if ($media_id) {
+        $stmt = $db->prepare('SELECT c.*, u.username FROM comments c LEFT JOIN users u ON c.user_id = u.id WHERE c.media_id = :media_id ORDER BY c.created_at DESC');
+        $stmt->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
+        $res = $stmt->execute();
+        while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
+            $comments[] = $row;
+        }
     }
 }
 // 用户信息展示
@@ -323,23 +357,24 @@ $is_login = isset($_SESSION['user_id']);
         .dy-pc-sidenav-item {display:flex;flex-direction:column;align-items:center;gap:6px;color:#a259e6;font-size:1.3em;cursor:pointer;padding:14px 0;width:100%;border-radius:12px;transition:color 0.18s,background 0.18s;}
         .dy-pc-sidenav-item.active,.dy-pc-sidenav-item:hover {background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;}
         .dy-pc-sidenav-item span {font-size:0.98em;}
-        .dy-pc-header {
-            height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:rgba(255,255,255,0.95);box-shadow:0 2px 12px rgba(162,89,230,0.08);border-bottom:1.5px solid #e0c3fc;position:fixed;top:0;left:0;width:100vw;z-index:100;backdrop-filter:blur(8px);
-        }
+        .dy-pc-header {height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:rgba(255,255,255,0.95);box-shadow:0 2px 12px rgba(162,89,230,0.08);border-bottom:1.5px solid #e0c3fc;position:fixed;top:0;left:0;width:100vw;z-index:100;backdrop-filter:blur(8px);}
         .dy-pc-logo {font-size:1.7em;font-weight:700;color:#a259e6;letter-spacing:2px;display:flex;align-items:center;gap:10px;}
         .dy-pc-search {position:relative;flex:1;display:flex;justify-content:center;}
         .dy-pc-search input {width:340px;padding:10px 40px 10px 18px;border-radius:22px;border:none;font-size:1.08em;background:#f3e8ff;color:#a259e6;box-shadow:0 1px 4px rgba(162,89,230,0.08);outline:none;transition:box-shadow 0.18s;}
         .dy-pc-search input:focus {box-shadow:0 2px 12px rgba(162,89,230,0.18);}
-        .dy-pc-search .search-icon {position:absolute;right:18px;top:50%;transform:translateY(-50%);color:#a259e6;font-size:1.15em;pointer-events:none;}
+        .dy-pc-search .search-icon {position:absolute;right:18px;top:50%;transform:translateY(-50%);color:#a259e6;font-size:1.15em;}
         .dy-pc-header-actions {display:flex;align-items:center;gap:18px;}
         .dy-pc-header-btn {background:linear-gradient(90deg,#a259e6 60%,#e0c3fc 100%);color:#fff;border-radius:18px;padding:7px 22px;font-weight:600;font-size:1.08em;border:none;cursor:pointer;box-shadow:0 1px 4px rgba(162,89,230,0.08);transition:background 0.18s,color 0.18s;}
         .dy-pc-header-btn:hover {background:#e0c3fc;color:#fff;}
-        .dy-pc-avatar {width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2em;font-weight:bold;box-shadow:0 2px 8px rgba(162,89,230,0.10);user-select:none;border:2px solid #fff;margin-right:32px;}
+        .dy-pc-avatar {width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2em;font-weight:bold;box-shadow:0 2px 8px rgba(162,89,230,0.10);user-select:none;border:2px solid #fff;}
         .dy-pc-login {color:#a259e6;font-weight:600;text-decoration:none;}
         @media (max-width: 1200px) {
-            .dy-pc-header {padding:0 12px;}
-            .dy-pc-search input {width:220px;}
-            .dy-pc-avatar {margin-right:12px;}
+            .dy-pc-main {flex-direction:column;align-items:center;height:auto;}
+            .dy-pc-center {height:auto;width:100vw;max-width:100vw;}
+            .dy-pc-video-wrap {height:60vw;max-height:70vh;}
+            .dy-pc-video-info {left:12px;bottom:12px;max-width:90vw;}
+            .dy-pc-actions {right:12px;}
+            .dy-pc-comment-panel {width:100vw;max-width:100vw;position:fixed;left:0;top:0;border-radius:0;box-shadow:none;}
         }
         @media (max-width: 700px) {
             .dy-pc-main {margin-top:60px;height:auto;}
@@ -381,276 +416,25 @@ $is_login = isset($_SESSION['user_id']);
         }
         #current-time,#duration {font-family:monospace;font-size:1em;color:#a259e6;font-weight:600;}
         @media (max-width:700px){.custom-controls{bottom:10px;padding:6px 6px;}.progress-bar-wrap{gap:4px;}#progress-bar{width:120px;}}
-        /* 登录注册弹窗美化 */
-        #login-modal, #register-modal {
-            display:none;position:fixed;z-index:10001;left:0;top:0;width:100vw;height:100vh;
-            background:rgba(243,232,255,0.85); /* 更淡的紫色遮罩 */
-            align-items:center;justify-content:center;
-            animation:fadein-modal 0.3s;
-        }
-        @keyframes fadein-modal {from{opacity:0;}to{opacity:1;}}
-        #login-form, #register-form {
-            background:#f3e8ff;
-            padding:38px 34px 32px 34px;
-            border-radius:22px;
-            box-shadow:0 8px 48px 0 rgba(224,195,252,0.18),0 1.5px 8px rgba(224,195,252,0.10);
-            min-width:340px;max-width:96vw;
-            display:flex;flex-direction:column;gap:22px;position:relative;
-            border:1.5px solid #e0c3fc;
-            transition:box-shadow 0.2s,border 0.2s;
-        }
-        #login-form:hover, #register-form:hover {
-            box-shadow:0 16px 64px 0 rgba(224,195,252,0.28),0 2px 12px rgba(224,195,252,0.16);
-            border:1.5px solid #a259e6;
-        }
-        #login-form h2, #register-form h2 {
-            text-align:center;color:#a259e6;margin-bottom:8px;letter-spacing:1px;font-size:1.45em;font-weight:700;
-        }
-        #login-form input, #register-form input {
-            padding:12px 16px;border-radius:12px;border:1.5px solid #e0c3fc;background:#f8f3ff;
-            font-size:1.08em;transition:border 0.18s,box-shadow 0.18s;
-            margin-bottom:2px;color:#a259e6;
-        }
-        #login-form input:focus, #register-form input:focus {
-            border:1.5px solid #a259e6;outline:none;box-shadow:0 2px 8px rgba(224,195,252,0.13);
-            background:#f3e8ff;
-        }
-        #login-form button, #register-form button {
-            background:linear-gradient(90deg,#a259e6 60%,#e0c3fc 100%);
-            color:#fff;border:none;border-radius:12px;padding:14px 0;font-size:1.12em;font-weight:700;cursor:pointer;
-            box-shadow:0 2px 8px rgba(224,195,252,0.10);transition:background 0.18s,transform 0.13s;
-            margin-top:6px;
-        }
-        #login-form button:hover, #register-form button:hover {
-            background:linear-gradient(90deg,#8f5fe8 60%,#a259e6 100%);color:#fff;transform:scale(1.03);border:1.5px solid #a259e6;
-        }
-        #login-form span[onclick], #register-form span[onclick] {
-            position:absolute;right:18px;top:12px;font-size:1.5em;cursor:pointer;color:#a259e6;transition:color 0.18s;
-        }
-        #login-form span[onclick]:hover, #register-form span[onclick]:hover {
-            color:#e0c3fc;
-        }
-        #login-error, #register-error {
-            color:#a259e6;text-align:center;margin-bottom:12px;display:none;font-size:1.05em;
-        }
-        #login-form div[style*='text-align:center'], #register-form div[style*='text-align:center'] {
-            color:#a259e6;font-size:0.98em;margin-top:8px;
-        }
-        #login-form a, #register-form a {
-            color:#a259e6;text-decoration:none;font-weight:600;transition:color 0.18s;
-        }
-        #login-form a:hover, #register-form a:hover {
-            color:#e0c3fc;text-decoration:underline;
-        }
-        @media (max-width: 600px) {
-            #login-form, #register-form {padding:18px 4vw;min-width:0;}
-        }
-        #register-form select[name='gender'] {
-            padding:12px 16px;
-            border-radius:12px;
-            border:1.5px solid #e0c3fc;
-            background:#f8f3ff;
-            font-size:1.08em;
-            color:#a259e6;
-            margin-bottom:2px;
-            appearance:none;
-            -webkit-appearance:none;
-            -moz-appearance:none;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%23a259e6" height="20" viewBox="0 0 20 20" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7.293 7.293a1 1 0 011.414 0L10 8.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z"/></svg>');
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            background-size: 20px 20px;
-            box-shadow:0 1px 4px rgba(162,89,230,0.08);
-            transition:border 0.18s,box-shadow 0.18s;
-        }
-        #register-form select[name='gender']:focus {
-            border:1.5px solid #a259e6;outline:none;box-shadow:0 2px 8px rgba(224,195,252,0.13);
-            background-color:#f3e8ff;
-        }
-        .gender-radio-group {
-            display: flex;
-            gap: 22px;
-            margin-bottom: 2px;
-            justify-content: flex-start;
-        }
-        .gender-radio-label {
-            display: flex;
-            align-items: center;
-            font-size: 1.08em;
-            color: #a259e6;
-            cursor: pointer;
-            position: relative;
-            user-select: none;
-        }
-        .gender-radio-label input[type="radio"] {
-            opacity: 0;
-            position: absolute;
-            left: 0;
-            width: 22px;
-            height: 22px;
-            margin: 0;
-            z-index: 1;
-            cursor: pointer;
-        }
-        .custom-radio {
-            width: 18px;
-            height: 18px;
-            border: 2px solid #a259e6;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 7px;
-            background: #f8f3ff;
-            box-shadow: 0 1px 4px rgba(162,89,230,0.08);
-            transition: border 0.18s, box-shadow 0.18s;
-            position: relative;
-        }
-        .gender-radio-label input[type="radio"]:checked + .custom-radio {
-            border: 6px solid #e0c3fc;
-            background: #a259e6;
-        }
-        .gender-radio-label input[type="radio"]:focus + .custom-radio {
-            box-shadow: 0 0 0 2px #e0c3fc;
-        }
     </style>
 </head>
 <body style="background:#f8f3ff;min-height:100vh;">
     <!-- 顶部导航栏 -->
     <div class="dy-pc-header">
         <div class="dy-pc-logo"><i class="fa-solid fa-music"></i> 媒体播放器</div>
-        <div class="dy-pc-search">
-            <input type="text" placeholder="搜索用户、视频、音乐" />
-            <i class="fa-solid fa-search search-icon"></i>
-        </div>
+        <div class="dy-pc-search"><input type="text" placeholder="搜索用户、视频、音乐" /><i class="fa-solid fa-search search-icon"></i></div>
         <div class="dy-pc-header-actions">
             <button class="dy-pc-header-btn" id="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
+            <button class="dy-pc-header-btn"><i class="fa-regular fa-message"></i> 消息</button>
             <button class="dy-pc-header-btn"><i class="fa-solid fa-gem"></i> 创作者中心</button>
             <?php if ($is_login): ?>
                 <span class="dy-pc-avatar"><?= htmlspecialchars($user_avatar) ?></span>
                 <a href="logout.php" class="dy-pc-login">退出</a>
             <?php else: ?>
-                <a href="#" class="dy-pc-login" onclick="openLoginModal();return false;">登录</a> | <a href="#" class="dy-pc-login" onclick="openRegisterModal();return false;">注册</a>
+                <a href="login.php" class="dy-pc-login">登录</a> | <a href="register.php" class="dy-pc-login">注册</a>
             <?php endif; ?>
         </div>
     </div>
-    <!-- 登录弹窗 -->
-    <div id="login-modal" style="display:none;position:fixed;z-index:10001;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
-        <form id="login-form" style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 8px 48px 0 rgba(162,89,230,0.18),0 1.5px 8px rgba(162,89,230,0.10);min-width:340px;max-width:96vw;display:flex;flex-direction:column;gap:18px;position:relative;">
-            <span style="position:absolute;right:18px;top:12px;font-size:1.5em;cursor:pointer;color:#a259e6;transition:color 0.18s;" onclick="closeLoginModal()">&times;</span>
-            <h2 style="text-align:center;color:#a259e6;margin-bottom:8px;">用户登录</h2>
-            <div id="login-error" style="color:#d32f2f;text-align:center;margin-bottom:12px;display:none;"></div>
-            <input type="text" name="username" placeholder="用户名" required autofocus>
-            <input type="password" name="password" placeholder="密码" required>
-            <button type="submit" style="background:linear-gradient(90deg,#a259e6 60%,#e0c3fc 100%);color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.08em;font-weight:600;cursor:pointer;">登录</button>
-            <div style="text-align:center;margin-top:10px;">还没有账号？<a href="#" onclick="switchToRegister();return false;">注册</a></div>
-        </form>
-    </div>
-    <!-- 注册弹窗 -->
-    <div id="register-modal" style="display:none;position:fixed;z-index:10001;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
-        <form id="register-form" style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 8px 48px 0 rgba(162,89,230,0.18),0 1.5px 8px rgba(162,89,230,0.10);min-width:340px;max-width:96vw;display:flex;flex-direction:column;gap:18px;position:relative;">
-            <span style="position:absolute;right:18px;top:12px;font-size:1.5em;cursor:pointer;color:#a259e6;transition:color 0.18s;" onclick="closeRegisterModal()">&times;</span>
-            <h2 style="text-align:center;color:#a259e6;margin-bottom:8px;">用户注册</h2>
-            <div id="register-error" style="color:#d32f2f;text-align:center;margin-bottom:12px;display:none;"></div>
-            <input type="text" name="username" placeholder="用户名" required autofocus>
-            <input type="password" name="password" placeholder="密码" required>
-            <input type="email" name="email" placeholder="邮箱" required>
-            <input type="text" name="phone" placeholder="电话号码" required pattern="[0-9\-\+]{7,20}">
-            <div class="gender-radio-group">
-                <label class="gender-radio-label"><input type="radio" name="gender" value="男" required><span class="custom-radio"></span>男</label>
-                <label class="gender-radio-label"><input type="radio" name="gender" value="女" required><span class="custom-radio"></span>女</label>
-                <label class="gender-radio-label"><input type="radio" name="gender" value="保密" required><span class="custom-radio"></span>保密</label>
-            </div>
-            <button type="submit" style="background:linear-gradient(90deg,#a259e6 60%,#42a5f5 100%);color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.08em;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(162,89,230,0.10);transition:background 0.18s;">注册</button>
-            <div style="text-align:center;margin-top:10px;">已有账号？<a href="#" onclick="switchToLogin();return false;">登录</a></div>
-        </form>
-    </div>
-    <script>
-    // 弹窗控制
-    function openLoginModal(){
-        document.getElementById('login-modal').style.display = 'flex';
-        document.getElementById('register-modal').style.display = 'none';
-    }
-    function closeLoginModal(){
-        document.getElementById('login-modal').style.display = 'none';
-    }
-    function openRegisterModal(){
-        document.getElementById('register-modal').style.display = 'flex';
-        document.getElementById('login-modal').style.display = 'none';
-    }
-    function closeRegisterModal(){
-        document.getElementById('register-modal').style.display = 'none';
-    }
-    function switchToRegister(){
-        openRegisterModal();
-    }
-    function switchToLogin(){
-        openLoginModal();
-    }
-    // 点击弹窗外关闭
-    window.addEventListener('mousedown', function(e) {
-        var loginModal = document.getElementById('login-modal');
-        var loginForm = document.getElementById('login-form');
-        if(loginModal && loginModal.style.display!=='none' && !loginForm.contains(e.target)){
-            closeLoginModal();
-        }
-        var regModal = document.getElementById('register-modal');
-        var regForm = document.getElementById('register-form');
-        if(regModal && regModal.style.display!=='none' && !regForm.contains(e.target)){
-            closeRegisterModal();
-        }
-    });
-    // 登录表单AJAX提交
-    const loginForm = document.getElementById('login-form');
-    if(loginForm){
-        loginForm.onsubmit = function(e){
-            e.preventDefault();
-            const formData = new FormData(loginForm);
-            fetch('login.php', {
-                method: 'POST',
-                body: formData
-            }).then(r=>r.json()).then(data=>{
-                if(data.success){
-                    location.reload();
-                }else{
-                    document.getElementById('login-error').innerText = data.error||'登录失败';
-                    document.getElementById('login-error').style.display = 'block';
-                }
-            }).catch(()=>{
-                document.getElementById('login-error').innerText = '网络错误';
-                document.getElementById('login-error').style.display = 'block';
-            });
-        }
-    }
-    // 注册表单AJAX提交
-    const regForm = document.getElementById('register-form');
-    if(regForm){
-        regForm.onsubmit = function(e){
-            e.preventDefault();
-            const formData = new FormData(regForm);
-            fetch('register.php', {
-                method: 'POST',
-                body: formData
-            }).then(r=>r.json()).then(data=>{
-                if(data.success && data.next==='login'){
-                    document.getElementById('register-error').style.display = 'none';
-                    closeRegisterModal();
-                    openLoginModal();
-                    setTimeout(function(){
-                        document.getElementById('login-error').innerText = '注册成功，请登录';
-                        document.getElementById('login-error').style.display = 'block';
-                    }, 300);
-                }else if(data.success){
-                    location.reload();
-                }else{
-                    document.getElementById('register-error').innerText = data.error||'注册失败';
-                    document.getElementById('register-error').style.display = 'block';
-                }
-            }).catch(()=>{
-                document.getElementById('register-error').innerText = '网络错误';
-                document.getElementById('register-error').style.display = 'block';
-            });
-        }
-    }
-    </script>
     <!-- 上传弹窗，仅登录用户可见 -->
     <?php if ($is_login): ?>
     <div id="upload-modal" style="display:none;position:fixed;z-index:10000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
@@ -683,15 +467,20 @@ $is_login = isset($_SESSION['user_id']);
     <div class="dy-pc-main">
         <!-- 左侧导航 -->
         <div class="dy-pc-sidenav">
-            <div class="dy-pc-sidenav-item active"><i class="fa-solid fa-film"></i><span>视频</span></div>
-            <div class="dy-pc-sidenav-item"><i class="fa-solid fa-music"></i><span>音频</span></div>
-            <div class="dy-pc-sidenav-item" id="my-center-btn" onclick="location.href='user_center.php'" style="cursor:pointer;"><i class="fa-solid fa-user"></i><span>我的</span></div>
+            <div class="dy-pc-sidenav-item active"><i class="fa-solid fa-compass"></i><span>推荐</span></div>
+            <div class="dy-pc-sidenav-item"><i class="fa-solid fa-user-friends"></i><span>关注</span></div>
+            <div class="dy-pc-sidenav-item"><i class="fa-solid fa-tv"></i><span>直播</span></div>
+            <div class="dy-pc-sidenav-item"><i class="fa-solid fa-fire"></i><span>热点</span></div>
+            <div class="dy-pc-sidenav-item"><i class="fa-solid fa-location-dot"></i><span>同城</span></div>
             <?php if ($is_login): ?>
-                <a href="logout.php" class="dy-pc-sidenav-item" style="color:#a259e6;"><i class="fa-solid fa-sign-out-alt"></i><span>退出</span></a>
+                <span class="dy-pc-avatar"><?= htmlspecialchars($user_avatar) ?></span>
+                <a href="logout.php" class="dy-pc-login">退出</a>
+            <?php else: ?>
+                <a href="login.php" class="dy-pc-login">登录</a> | <a href="register.php" class="dy-pc-login">注册</a>
             <?php endif; ?>
         </div>
         <!-- 中间视频区 -->
-        <div class="dy-pc-center" id="main-content">
+        <div class="dy-pc-center">
             <?php if ($mediaFile): ?>
                 <div class="dy-pc-video-card">
                     <div class="dy-pc-video-wrap">
@@ -728,8 +517,19 @@ $is_login = isset($_SESSION['user_id']);
                                 video.currentTime = progressBar.value;
                             });
                             playBtn.onclick = function() {
-                                if (video.paused) { video.play(); playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; }
-                                else { video.pause(); playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; }
+                                if (video.paused) {
+                                    video.play();
+                                    playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                                    // 记录播放历史
+                                    fetch('play_record.php', {
+                                        method: 'POST',
+                                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                                        body: 'file=<?= urlencode($mediaFile) ?>'
+                                    });
+                                } else {
+                                    video.pause();
+                                    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                                }
                             };
                             video.addEventListener('play', function(){ playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; });
                             video.addEventListener('pause', function(){ playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; });
@@ -781,7 +581,7 @@ $is_login = isset($_SESSION['user_id']);
                 <?php if (!empty($comments)): ?>
                     <?php foreach ($comments as $c): ?>
                         <div class="dy-pc-comment-item">
-                            <span class="dy-pc-comment-user"><i class="fa-solid fa-user"></i> <?= htmlspecialchars($c['username']) ?></span>
+                            <span class="dy-pc-comment-user"><i class="fa-solid fa-user"></i> <?= htmlspecialchars($c['nickname'] ?: $c['username']) ?></span>
                             <span class="dy-pc-comment-time"> <?= htmlspecialchars($c['created_at']) ?></span>
                             <div class="dy-pc-comment-content"> <?= nl2br(htmlspecialchars($c['content'])) ?> </div>
                         </div>
@@ -826,32 +626,6 @@ $is_login = isset($_SESSION['user_id']);
         window.onload = function(){
             document.getElementById('dy-pc-comment-panel').classList.remove('active');
         };
-    </script>
-    <script>
-    document.getElementById('my-center-btn').onclick = function(){
-        // 仅登录用户可用
-        var isLogin = <?php echo $is_login ? 'true' : 'false'; ?>;
-        if (!isLogin) {
-            openLoginModal();
-            return;
-        }
-        var mainContent = document.getElementById('main-content');
-        mainContent.innerHTML = '<div style="text-align:center;padding:60px 0;font-size:1.2em;color:#a259e6;">正在加载个人中心...</div>';
-        fetch('user_center.php')
-            .then(r => r.text())
-            .then(html => {
-                // 只提取 <body> 里的内容，避免重复 <html><head>
-                var bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-                if(bodyMatch && bodyMatch[1]){
-                    mainContent.innerHTML = bodyMatch[1];
-                }else{
-                    mainContent.innerHTML = html;
-                }
-            })
-            .catch(()=>{
-                mainContent.innerHTML = '<div style="color:#d32f2f;text-align:center;padding:60px 0;">加载失败，请重试</div>';
-            });
-    };
     </script>
 </body>
 </html> 
