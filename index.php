@@ -619,12 +619,12 @@ $is_login = isset($_SESSION['user_id']);
     <div class="dy-pc-header">
         <div class="dy-pc-logo"><i class="fa-solid fa-music"></i> 媒体播放器</div>
         <div class="dy-pc-search">
-            <input type="text" placeholder="搜索用户、视频、音乐" />
-            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" placeholder="搜索用户、视频、音乐" style="width: 40%; padding-right: 36px; box-sizing: border-box; height: 36px;" />
+            <i class="fa-solid fa-search search-icon" style="position: absolute; right: 300px; top: 50%; transform: translateY(-50%); color: #888; pointer-events: none; font-size: 18px;"></i>
         </div>
         <div class="dy-pc-header-actions">
             <button class="dy-pc-header-btn" id="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
-            <button class="dy-pc-header-btn"><i class="fa-solid fa-gem"></i> 创作者中心</button>
+            <!-- <button class="dy-pc-header-btn"><i class="fa-solid fa-gem"></i> 创作者中心</button> -->
             <?php if ($is_login): ?>
                 <span class="dy-pc-avatar"><?= htmlspecialchars($user_avatar) ?></span>
                 <a href="logout.php" class="dy-pc-login">退出</a>
