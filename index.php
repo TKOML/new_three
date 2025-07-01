@@ -16,17 +16,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media'])) {
     }
     $fileName = basename($_FILES['media']['name']);
     $targetFile = $uploadDir . $fileName;
-    if (move_uploaded_file($_FILES['media']['tmp_name'], $targetFile)) {
+    $description = trim($_POST['description'] ?? '');
+    $tags = trim($_POST['tags'] ?? '');
+    $allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    $maxSize = 200 * 1024 * 1024; // 200MB
+    if (!in_array($_FILES['media']['type'], $allowedTypes)) {
+        $error = '仅支持mp4/webm/ogg格式视频';
+    } elseif ($_FILES['media']['size'] > $maxSize) {
+        $error = '文件过大，最大支持200MB';
+    } elseif (move_uploaded_file($_FILES['media']['tmp_name'], $targetFile)) {
         if ($db && isset($_SESSION['user_id'])) {
-            $stmt = $db->prepare('INSERT INTO history (user_id, filename) VALUES (:uid, :filename)');
-            $stmt->bindValue(':uid', $_SESSION['user_id'], SQLITE3_INTEGER);
-            $stmt->bindValue(':filename', $fileName, SQLITE3_TEXT);
-            $stmt->execute();
-        } else {
-            $_SESSION['history'][] = $fileName;
+            // 写入media表
+            $media_url = 'uploads/' . $fileName;
+            $creator_id = $_SESSION['user_id'];
+            $media_type = pathinfo($fileName, PATHINFO_EXTENSION);
+            $stmt = $db->prepare('INSERT INTO media (media_url, creator_id, description, media_type, tags) VALUES (:url, :creator, :desc, :type, :tags)');
+            $stmt->bindValue(':url', $media_url, SQLITE3_TEXT);
+            $stmt->bindValue(':creator', $creator_id, SQLITE3_INTEGER);
+            $stmt->bindValue(':desc', $description, SQLITE3_TEXT);
+            $stmt->bindValue(':type', $media_type, SQLITE3_TEXT);
+            $stmt->bindValue(':tags', $tags, SQLITE3_TEXT);
+            $result = $stmt->execute();
+            $err = $db->lastErrorMsg();
+            echo "<div style='color:blue'>SQL执行结果: ".($result?'成功':'失败')."</div>";
+            echo "<div style='color:red'>lastErrorMsg: $err</div>";
+            // exit; // 便于调试，暂不跳转
         }
-        header('Location: ?file=' . urlencode($fileName));
-        exit;
+        // header('Location: ?file=' . urlencode($fileName));
+        // exit;
     } else {
         $error = '文件上传失败';
     }
@@ -350,7 +367,7 @@ $is_login = isset($_SESSION['user_id']);
         <div class="dy-pc-logo"><i class="fa-solid fa-music"></i> 媒体播放器</div>
         <div class="dy-pc-search"><input type="text" placeholder="搜索用户、视频、音乐" /><i class="fa-solid fa-search search-icon"></i></div>
         <div class="dy-pc-header-actions">
-            <button class="dy-pc-header-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
+            <button class="dy-pc-header-btn" id="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
             <button class="dy-pc-header-btn"><i class="fa-regular fa-message"></i> 消息</button>
             <button class="dy-pc-header-btn"><i class="fa-solid fa-gem"></i> 创作者中心</button>
             <?php if ($is_login): ?>
@@ -361,6 +378,35 @@ $is_login = isset($_SESSION['user_id']);
             <?php endif; ?>
         </div>
     </div>
+    <!-- 上传弹窗，仅登录用户可见 -->
+    <?php if ($is_login): ?>
+    <div id="upload-modal" style="display:none;position:fixed;z-index:10000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
+        <form id="upload-form" method="post" enctype="multipart/form-data" style="background:linear-gradient(135deg,#f3e8ff 0%,#e0c3fc 100%);padding:32px 28px;border-radius:18px;box-shadow:0 8px 48px 0 rgba(162,89,230,0.18),0 1.5px 8px rgba(162,89,230,0.10);min-width:340px;max-width:96vw;display:flex;flex-direction:column;gap:18px;position:relative;">
+            <span style="position:absolute;right:18px;top:12px;font-size:1.5em;cursor:pointer;color:#a259e6;transition:color 0.18s;" onmouseover="this.style.color='#1976d2'" onmouseout="this.style.color='#a259e6'" onclick="closeUploadModal()">&times;</span>
+            <h2 style="text-align:center;color:#a259e6;margin-bottom:8px;letter-spacing:1px;">上传视频</h2>
+            <input type="file" name="media" accept="video/mp4,video/webm,video/ogg" required style="padding:10px 0 10px 0;border-radius:8px;border:1.5px solid #b0bec5;background:#fff;">
+            <input type="text" name="description" placeholder="视频描述（可选）" maxlength="100" style="padding:10px 14px;border-radius:8px;border:1.5px solid #b0bec5;background:#f8fafc;">
+            <input type="text" name="tags" placeholder="标签（逗号分隔，可选）" maxlength="50" style="padding:10px 14px;border-radius:8px;border:1.5px solid #b0bec5;background:#f8fafc;">
+            <button type="submit" style="background:linear-gradient(90deg,#a259e6 60%,#42a5f5 100%);color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.08em;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(162,89,230,0.10);transition:background 0.18s;">上传</button>
+        </form>
+    </div>
+    <script>
+    document.getElementById('upload-btn').onclick = function(){
+        document.getElementById('upload-modal').style.display = 'flex';
+    };
+    function closeUploadModal(){
+        document.getElementById('upload-modal').style.display = 'none';
+    }
+    // 点击弹窗外关闭
+    window.addEventListener('mousedown', function(e) {
+        var modal = document.getElementById('upload-modal');
+        var form = document.getElementById('upload-form');
+        if(modal && modal.style.display!=='none' && !form.contains(e.target) && e.target.id!=='upload-btn'){
+            closeUploadModal();
+        }
+    });
+    </script>
+    <?php endif; ?>
     <div class="dy-pc-main">
         <!-- 左侧导航 -->
         <div class="dy-pc-sidenav">
