@@ -166,7 +166,7 @@ if ($db && isset($_SESSION['user_id']) && $media_id) {
     }
     // 获取评论
     $comments = [];
-    $stmt = $db->prepare('SELECT c.*, u.username FROM comments c LEFT JOIN users u ON c.user_id = u.id WHERE c.media_id = :media_id ORDER BY c.created_at DESC');
+    $stmt = $db->prepare('SELECT c.*, u.username, u.avatar_url FROM comments c LEFT JOIN users u ON c.user_id = u.id WHERE c.media_id = :media_id ORDER BY c.created_at DESC');
     $stmt->bindValue(':media_id', $media_id, SQLITE3_INTEGER);
     $res = $stmt->execute();
     while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
@@ -274,7 +274,9 @@ $is_login = isset($_SESSION['user_id']);
             overflow:hidden;
             transition:transform 0.35s cubic-bezier(.4,0,.2,1),opacity 0.25s;
             transform:translateX(100%);opacity:0;pointer-events:none;
-            display:flex;flex-direction:column;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
         .dy-pc-comment-panel.active {
             transform:translateX(0);opacity:1;pointer-events:auto;
@@ -285,17 +287,56 @@ $is_login = isset($_SESSION['user_id']);
             background:rgba(243,232,255,0.85);backdrop-filter:blur(4px);
             border-radius:18px 0 0 0;
         }
-        .dy-pc-comment-list {flex:1;overflow-y:auto;padding:0 18px;max-height:50vh;}
-        .dy-pc-comment-item {background:rgba(243,232,255,0.7);border-radius:12px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(162,89,230,0.08);}
+        .dy-pc-comment-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 18px;
+        }
+        .dy-pc-comment-item {
+            background:rgba(243,232,255,0.7);
+            border-radius:12px;
+            padding:12px 16px;
+            margin-bottom:12px;
+            box-shadow:0 1px 6px rgba(162,89,230,0.08);
+        }
+        .dy-pc-comment-avatar {
+            display:inline-block;
+            margin-right:8px;
+            vertical-align:middle;
+        }
+        .dy-pc-comment-avatar img {
+            width:32px;
+            height:32px;
+            border-radius:50%;
+            object-fit:cover;
+            vertical-align:middle;
+        }
+        .dy-pc-comment-avatar-empty {
+            width:32px;
+            height:32px;
+            border-radius:50%;
+            background:#e0c3fc;
+            color:#a259e6;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:bold;
+            font-size:1.1em;
+            vertical-align:middle;
+        }
         .dy-pc-comment-user {color:#a259e6;font-weight:600;}
         .dy-pc-comment-time {color:#888;font-size:0.98em;margin-left:10px;}
         .dy-pc-comment-content {margin-top:6px;white-space:pre-line;word-break:break-all;}
         .dy-pc-comment-empty {color:#bbb;text-align:center;margin:18px 0;}
         .dy-pc-comment-form {
-            display:flex;gap:10px;align-items:flex-end;padding:16px 22px 22px 22px;
-            border-top:1.5px solid #e0c3fc;background:rgba(243,232,255,0.85);backdrop-filter:blur(4px);
-            position:sticky;bottom:0;z-index:2;
-            border-radius:0 0 0 18px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            padding: 16px 22px 22px 22px;
+            border-top: 1.5px solid #e0c3fc;
+            background: rgba(243,232,255,0.85);
+            backdrop-filter: blur(4px);
+            border-radius: 0 0 0 18px;
         }
         .dy-pc-comment-form textarea {
             flex:1;resize:vertical;border-radius:10px;border:1.5px solid #d1b3ff;
@@ -685,7 +726,7 @@ $is_login = isset($_SESSION['user_id']);
         <div class="dy-pc-sidenav">
             <div class="dy-pc-sidenav-item active"><i class="fa-solid fa-film"></i><span>视频</span></div>
             <div class="dy-pc-sidenav-item"><i class="fa-solid fa-music"></i><span>音频</span></div>
-            <div class="dy-pc-sidenav-item" id="my-center-btn" onclick="location.href='user_center.php'" style="cursor:pointer;"><i class="fa-solid fa-user"></i><span>我的</span></div>
+            <a class="dy-pc-sidenav-item" href="user_center.php" style="cursor:pointer;"><i class="fa-solid fa-user"></i><span>我的</span></a>
             <?php if ($is_login): ?>
                 <a href="logout.php" class="dy-pc-sidenav-item" style="color:#a259e6;"><i class="fa-solid fa-sign-out-alt"></i><span>退出</span></a>
             <?php endif; ?>
@@ -781,6 +822,15 @@ $is_login = isset($_SESSION['user_id']);
                 <?php if (!empty($comments)): ?>
                     <?php foreach ($comments as $c): ?>
                         <div class="dy-pc-comment-item">
+                            <span class="dy-pc-comment-avatar">
+                                <?php if (!empty($c['avatar_url'])): ?>
+                                    <img src="<?= htmlspecialchars($c['avatar_url']) ?>" alt="头像" style="width:32px;height:32px;border-radius:50%;object-fit:cover;vertical-align:middle;">
+                                <?php else: ?>
+                                    <span class="dy-pc-comment-avatar-empty" style="width:32px;height:32px;border-radius:50%;background:#e0c3fc;color:#a259e6;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.1em;vertical-align:middle;">
+                                        <?= htmlspecialchars(mb_substr($c['username'],0,1,'UTF-8')) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </span>
                             <span class="dy-pc-comment-user"><i class="fa-solid fa-user"></i> <?= htmlspecialchars($c['username']) ?></span>
                             <span class="dy-pc-comment-time"> <?= htmlspecialchars($c['created_at']) ?></span>
                             <div class="dy-pc-comment-content"> <?= nl2br(htmlspecialchars($c['content'])) ?> </div>
@@ -826,32 +876,6 @@ $is_login = isset($_SESSION['user_id']);
         window.onload = function(){
             document.getElementById('dy-pc-comment-panel').classList.remove('active');
         };
-    </script>
-    <script>
-    document.getElementById('my-center-btn').onclick = function(){
-        // 仅登录用户可用
-        var isLogin = <?php echo $is_login ? 'true' : 'false'; ?>;
-        if (!isLogin) {
-            openLoginModal();
-            return;
-        }
-        var mainContent = document.getElementById('main-content');
-        mainContent.innerHTML = '<div style="text-align:center;padding:60px 0;font-size:1.2em;color:#a259e6;">正在加载个人中心...</div>';
-        fetch('user_center.php')
-            .then(r => r.text())
-            .then(html => {
-                // 只提取 <body> 里的内容，避免重复 <html><head>
-                var bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-                if(bodyMatch && bodyMatch[1]){
-                    mainContent.innerHTML = bodyMatch[1];
-                }else{
-                    mainContent.innerHTML = html;
-                }
-            })
-            .catch(()=>{
-                mainContent.innerHTML = '<div style="color:#d32f2f;text-align:center;padding:60px 0;">加载失败，请重试</div>';
-            });
-    };
     </script>
 </body>
 </html> 
