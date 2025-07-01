@@ -1,0 +1,4 @@
+# 允许访问媒体文件，但禁止脚本执行
+<FilesMatch "\.(php|php5|php7|phar)$">
+    Deny from all
+</FilesMatch> 
