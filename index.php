@@ -883,11 +883,22 @@ $is_login = isset($_SESSION['user_id']);
                             <p>不支持的文件类型。</p>
                         <?php endif; ?>
                         <!-- 视频右侧浮动操作按钮 -->
+                        <?php
+                        // 获取点赞数
+                        $like_count = 0;
+                        $fav_count = 0;
+                        $comment_count = 0;
+                        if ($db && $media_id) {
+                            $like_count = $db->querySingle("SELECT COUNT(*) FROM likes WHERE media_id = " . intval($media_id));
+                            $fav_count = $db->querySingle("SELECT COUNT(*) FROM favorites WHERE media_id = " . intval($media_id));
+                            $comment_count = $db->querySingle("SELECT COUNT(*) FROM comments WHERE media_id = " . intval($media_id));
+                        }
+                        ?>
                         <div class="dy-pc-actions">
-                            <button class="dy-pc-action-btn" title="点赞"><i class="fa-solid fa-heart"></i><span>99</span><div class="dy-pc-tooltip">点赞</div></button>
-                            <button class="dy-pc-action-btn" id="dy-comment-btn" onclick="toggleDyComment()" title="评论"><i class="fa-solid fa-comment"></i><span>88</span><div class="dy-pc-tooltip">评论</div></button>
-                            <button class="dy-pc-action-btn" title="收藏"><i class="fa-solid fa-star"></i><span>77</span><div class="dy-pc-tooltip">收藏</div></button>
-                            <button class="dy-pc-action-btn" onclick="navigator.clipboard.writeText(location.href)" title="分享"><i class="fa-solid fa-share"></i><span>99</span><div class="dy-pc-tooltip">分享</div></button>
+                            <button class="dy-pc-action-btn" title="点赞"><i class="fa-solid fa-heart"></i><span><?= $like_count ?></span><div class="dy-pc-tooltip">点赞</div></button>
+                            <button class="dy-pc-action-btn" id="dy-comment-btn" onclick="toggleDyComment()" title="评论"><i class="fa-solid fa-comment"></i><span><?= $comment_count ?></span><div class="dy-pc-tooltip">评论</div></button>
+                            <button class="dy-pc-action-btn" title="收藏"><i class="fa-solid fa-star"></i><span><?= $fav_count ?></span><div class="dy-pc-tooltip">收藏</div></button>
+                            <button class="dy-pc-action-btn" onclick="navigator.clipboard.writeText(location.href)" title="分享"><i class="fa-solid fa-share"></i><span>分享</span><div class="dy-pc-tooltip">分享</div></button>
                         </div>
                         <!-- 视频下方信息 -->
                         <div class="dy-pc-video-info">
