@@ -612,6 +612,9 @@ $is_login = isset($_SESSION['user_id']);
             pointer-events: none;
             transition: opacity 0.25s;
         }
+        .dy-pc-action-btn.active { color: #e57373; background: #f3e8ff; }
+        .dy-pc-action-btn.active .fa-star { color: #ffd600; }
+        .dy-pc-action-btn.active .fa-heart { color: #e57373; }
     </style>
 </head>
 <body style="background:#f8f3ff;min-height:100vh;">
@@ -895,11 +898,30 @@ $is_login = isset($_SESSION['user_id']);
                         }
                         ?>
                         <div class="dy-pc-actions">
-                            <button class="dy-pc-action-btn" title="点赞"><i class="fa-solid fa-heart"></i><span><?= $like_count ?></span><div class="dy-pc-tooltip">点赞</div></button>
+                            <button class="dy-pc-action-btn<?= $is_like ? ' active' : '' ?>" id="like-btn" title="点赞"><i class="fa-solid fa-heart"></i><span id="like-count"><?= $like_count ?></span><div class="dy-pc-tooltip">点赞</div></button>
                             <button class="dy-pc-action-btn" id="dy-comment-btn" onclick="toggleDyComment()" title="评论"><i class="fa-solid fa-comment"></i><span><?= $comment_count ?></span><div class="dy-pc-tooltip">评论</div></button>
-                            <button class="dy-pc-action-btn" title="收藏"><i class="fa-solid fa-star"></i><span><?= $fav_count ?></span><div class="dy-pc-tooltip">收藏</div></button>
+                            <button class="dy-pc-action-btn<?= $is_fav ? ' active' : '' ?>" id="fav-btn" title="收藏"><i class="fa-solid fa-star"></i><span id="fav-count"><?= $fav_count ?></span><div class="dy-pc-tooltip">收藏</div></button>
                             <button class="dy-pc-action-btn" onclick="navigator.clipboard.writeText(location.href)" title="分享"><i class="fa-solid fa-share"></i><span>分享</span><div class="dy-pc-tooltip">分享</div></button>
                         </div>
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var likeBtn = document.getElementById('like-btn');
+                            var favBtn = document.getElementById('fav-btn');
+                            var isLogin = <?= $is_login ? 'true' : 'false' ?>;
+                            var file = "<?= addslashes($mediaFile) ?>";
+                            likeBtn && likeBtn.addEventListener('click', function() {
+                                if(!isLogin){alert('请先登录！');return;}
+                                fetch('index.php?file='+encodeURIComponent(file)+'&like=<?= $is_like ? '0' : '1' ?>')
+                                    .then(r=>r.text()).then(()=>location.reload());
+                            });
+                            favBtn && favBtn.addEventListener('click', function() {
+                                if(!isLogin){alert('请先登录！');return;}
+                                fetch('index.php?file='+encodeURIComponent(file)+'&fav=<?= $is_fav ? '0' : '1' ?>')
+                                    .then(r=>r.text()).then(()=>location.reload());
+                            });
+                        });
+                        </script>
+
                         <!-- 视频下方信息 -->
                         <div class="dy-pc-video-info">
                             <div class="dy-pc-title"> <?= htmlspecialchars($mediaFile) ?> </div>
