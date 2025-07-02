@@ -256,7 +256,7 @@ $is_login = isset($_SESSION['user_id']);
             border-width:7px;border-style:solid;border-color:rgba(162,89,230,0.98) transparent transparent transparent;
         }
         .dy-pc-video-info {
-            position:absolute;left:38px;bottom:38px;
+            position:absolute;left:38px;bottom:120px;
             color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.18);
             background:rgba(243,232,255,0.38);
             border-radius:18px;padding:18px 28px;max-width:60vw;
@@ -270,8 +270,10 @@ $is_login = isset($_SESSION['user_id']);
         .dy-pc-music {color:#e0c3fc;font-size:1.08em;margin-top:8px;display:flex;align-items:center;gap:8px;}
         @keyframes fadein {from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:none;}}
         .dy-pc-comment-panel {
-            position:fixed;right:0;top:0;z-index:10001;
-            width:420px;max-width:90vw;height:100vh;min-height:100vh;max-height:100vh;
+            position:fixed;right:0;top:9vh;z-index:10001;
+            width:420px;max-width:90vw;height:90vh;
+            max-height:90vh;
+            min-height:90vh;
             background:rgba(255,255,255,0.98);backdrop-filter:blur(8px);
             border-radius:18px 0 0 18px;box-shadow:-8px 0 32px rgba(162,89,230,0.13);
             overflow:hidden;
@@ -279,7 +281,6 @@ $is_login = isset($_SESSION['user_id']);
             transform:translateX(100%);opacity:0;pointer-events:none;
             display: flex;
             flex-direction: column;
-            height: 100vh;
         }
         .dy-pc-comment-panel.active {
             transform:translateX(0);opacity:1;pointer-events:auto;
@@ -802,8 +803,7 @@ $is_login = isset($_SESSION['user_id']);
     <div class="dy-pc-main">
         <!-- 左侧导航 -->
         <div class="dy-pc-sidenav">
-            <a class="dy-pc-sidenav-item active" href="index.php"><i class="fa-solid fa-film"></i><span>视频</span></a>
-            <a class="dy-pc-sidenav-item" href="#"><i class="fa-solid fa-music"></i><span>音频</span></a>
+            <a class="dy-pc-sidenav-item active" href="index.php"><i class="fa-solid fa-film"></i><span>播放</span></a>
             <a class="dy-pc-sidenav-item" href="user_center.php" style="cursor:pointer;"><i class="fa-solid fa-user"></i><span>我的</span></a>
             <?php if ($is_login): ?>
                 <a href="logout.php" class="dy-pc-sidenav-item" style="color:#a259e6;"><i class="fa-solid fa-sign-out-alt"></i><span>退出</span></a>
@@ -880,8 +880,63 @@ $is_login = isset($_SESSION['user_id']);
                                 if (video) video.currentTime = Math.min(video.duration, video.currentTime + 10);
                             };
                             </script>
-                        <?php elseif (preg_match('/\.(mp3|wav|aac|m4a)$/i', $mediaFile)): ?>
-                            <audio id="media" src="<?= htmlspecialchars($mediaUrl) ?>" style="width:100%;display:block;margin:0 auto;"></audio>
+                        <?php elseif (preg_match('/\.(mp3|wav|aac|m4a)$/i', $mediaFile)):
+                            // 获取音频文件列表和当前索引
+                            $audioFiles = array_values(array_filter(scandir(__DIR__ . '/uploads'), function($f) {
+                                return preg_match('/\.(mp3|wav|aac|m4a)$/i', $f);
+                            }));
+                            $audioIndex = array_search($mediaFile, $audioFiles);
+                            $prevAudio = ($audioIndex !== false && $audioIndex > 0) ? $audioFiles[$audioIndex-1] : null;
+                            $nextAudio = ($audioIndex !== false && $audioIndex < count($audioFiles)-1) ? $audioFiles[$audioIndex+1] : null;
+                        ?>
+                            <div style="position:relative;text-align:center;">
+                              <img src="uploads/media.png" alt="音频背景" style="max-width:100%;height:auto;border-radius:16px;">
+                              <audio id="media-audio" src="<?= htmlspecialchars($mediaUrl) ?>" style="display:none;"></audio>
+                              <div class="custom-controls" id="audio-custom-controls" style="position:absolute;left:50%;bottom:-50px;transform:translateX(-50%);width:90%;background:rgba(255,255,255,0.85);border-radius:12px;padding:18px 18px 12px 18px;box-shadow:0 2px 12px rgba(162,89,230,0.10);display:flex;align-items:center;gap:18px;">
+                                <a href="?file=<?= urlencode($prevAudio) ?>" class="switch-btn" <?= $prevAudio?'':'style="opacity:.3;pointer-events:none;"' ?> title="上一首"><i class="fa-solid fa-angle-left"></i></a>
+                                <button id="audio-play-pause-btn" class="play-pause-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#a259e6;"><i class="fa-solid fa-play"></i></button>
+                                <div class="progress-bar-wrap" style="flex:1;display:flex;align-items:center;gap:8px;">
+                                  <input type="range" id="audio-progress-bar" value="0" min="0" max="100" step="0.1" style="width:100%;">
+                                  <span id="audio-current-time">00:00</span> / <span id="audio-duration">00:00</span>
+                                </div>
+                                <a href="?file=<?= urlencode($nextAudio) ?>" class="switch-btn" <?= $nextAudio?'':'style="opacity:.3;pointer-events:none;"' ?> title="下一首"><i class="fa-solid fa-angle-right"></i></a>
+                              </div>
+                            </div>
+                            <script>
+                            const audio = document.getElementById('media-audio');
+                            const playBtn = document.getElementById('audio-play-pause-btn');
+                            const progressBar = document.getElementById('audio-progress-bar');
+                            const currentTimeSpan = document.getElementById('audio-current-time');
+                            const durationSpan = document.getElementById('audio-duration');
+                            function formatTime(t) {
+                                t = Math.floor(t);
+                                const m = String(Math.floor(t/60)).padStart(2,'0');
+                                const s = String(t%60).padStart(2,'0');
+                                return m+':'+s;
+                            }
+                            audio.addEventListener('loadedmetadata', function() {
+                                progressBar.max = audio.duration;
+                                durationSpan.textContent = formatTime(audio.duration);
+                            });
+                            audio.addEventListener('timeupdate', function() {
+                                progressBar.value = audio.currentTime;
+                                currentTimeSpan.textContent = formatTime(audio.currentTime);
+                            });
+                            progressBar.addEventListener('input', function() {
+                                audio.currentTime = progressBar.value;
+                            });
+                            playBtn.onclick = function() {
+                                if (audio.paused) {
+                                    audio.play();
+                                    playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                                } else {
+                                    audio.pause();
+                                    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                                }
+                            };
+                            audio.addEventListener('play', function(){ playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; });
+                            audio.addEventListener('pause', function(){ playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; });
+                            </script>
                         <?php else: ?>
                             <p>不支持的文件类型。</p>
                         <?php endif; ?>
@@ -963,10 +1018,33 @@ $is_login = isset($_SESSION['user_id']);
                 <?php endif; ?>
             </div>
             <?php if ($db && isset($_SESSION['user_id'])): ?>
-            <form method="post" class="dy-pc-comment-form">
+            <form method="post" class="dy-pc-comment-form" id="comment-form">
                 <textarea name="comment_content" rows="2" placeholder="发表你的评论..."></textarea>
                 <button type="submit">发表评论</button>
             </form>
+            <script>
+            const commentForm = document.getElementById('comment-form');
+            if(commentForm){
+                commentForm.onsubmit = function(e){
+                    e.preventDefault();
+                    const formData = new FormData(commentForm);
+                    fetch(location.href, {
+                        method: 'POST',
+                        body: formData
+                    }).then(r=>r.text()).then(html=>{
+                        // 用新页面内容替换当前body，但保留评论区展开
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newComments = doc.querySelector('.dy-pc-comment-panel');
+                        if(newComments){
+                            document.querySelector('.dy-pc-comment-panel').innerHTML = newComments.innerHTML;
+                        } else {
+                            location.reload();
+                        }
+                    });
+                }
+            }
+            </script>
             <?php endif; ?>
         </div>
     </div>

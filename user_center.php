@@ -25,9 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 修改信息
     $fields = [];
     $params = [];
-    if (isset($_POST['nickname'])) {
-        $fields[] = 'nickname = :nickname';
-        $params[':nickname'] = trim($_POST['nickname']);
+    if (isset($_POST['username'])) {
+        $fields[] = 'username = :username';
+        $params[':username'] = trim($_POST['username']);
     }
     if (isset($_POST['email'])) {
         $fields[] = 'email = :email';
@@ -116,7 +116,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
         body { background:linear-gradient(135deg,#f3e8ff 0%,#e0c3fc 100%); font-family:'Segoe UI',Arial,sans-serif; }
         .dy-pc-main {
             display:flex;flex-direction:row;justify-content:center;align-items:flex-start;
-            width:100vw;max-width:100vw;margin-top:80px;height:calc(100vh - 80px);
+            width:100vw;max-width:100vw;margin-top:280px;height:calc(100vh - 80px);
             transition:all 0.4s cubic-bezier(.4,0,.2,1);
         }
         .dy-pc-center {
@@ -124,7 +124,8 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             width:100vw; max-width:100vw;
         }
         .dy-pc-sidenav {
-            width:90px;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:20px;background:rgba(255,255,255,0.92);border-radius:18px;margin-right:24px;box-shadow:0 2px 12px rgba(162,89,230,0.06);backdrop-filter:blur(4px);}
+            width:90px;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:20px;background:rgba(255,255,255,0.92);border-radius:18px;margin-right:24px;box-shadow:0 2px 12px rgba(162,89,230,0.06);backdrop-filter:blur(4px);margin-top:64px;
+        }
         .dy-pc-sidenav-item {display:flex;flex-direction:column;align-items:center;gap:6px;color:#a259e6;font-size:1.3em;cursor:pointer;padding:14px 0;width:100%;border-radius:12px;transition:color 0.18s,background 0.18s; text-decoration:none;}
         .dy-pc-sidenav-item.active,.dy-pc-sidenav-item:hover {background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;}
         .dy-pc-sidenav-item span {font-size:0.98em;}
@@ -141,7 +142,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
         .dy-pc-header-btn:hover {background:#e0c3fc;color:#fff;}
         .dy-pc-avatar {width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2em;font-weight:bold;box-shadow:0 2px 8px rgba(162,89,230,0.10);user-select:none;border:2px solid #fff;margin-right:32px;}
         .dy-pc-login {color:#a259e6;font-weight:600;text-decoration:none;}
-        @media (max-width: 1200px) {
+        @media (max-width: 1545px) {
             .dy-pc-header {padding:0 12px;}
             .dy-pc-search input {width:220px;}
             .dy-pc-avatar {margin-right:12px;}
@@ -316,6 +317,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             box-shadow: 0 2px 8px rgba(162,89,230,0.10);
             transition: background 0.18s, color 0.18s;
             border: none;
+            margin-top: 32px;
         }
         .uc-avatar-upload-btn:hover {
             background: linear-gradient(90deg,#8f5fe8 60%,#a259e6 100%);
@@ -351,7 +353,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             padding: 38px 38px 32px 38px;
             flex: 1 1 0%;
             min-width: 320px;
-            max-width: 520px;
+            max-width: 1545px;
             display: flex;
             flex-direction: column;
             gap: 18px;
@@ -448,7 +450,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             flex-direction: row;
             gap: 40px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1545px;
             margin: 0 auto;
             align-items: flex-start;
             justify-content: center;
@@ -501,7 +503,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             color: #a259e6;
             font-weight: 600;
         }
-        @media (max-width: 1200px) {
+        @media (max-width: 1545px) {
             .uc-flex-layout.uc-3col-layout {
                 gap: 18px;
                 max-width: 98vw;
@@ -514,13 +516,13 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
                 align-items: center;
             }
             .uc-profile-card, .uc-detail-card, .uc-password-card {
-                max-width: 98vw;
+                max-width: 1545px;  
                 min-width: 0;
             }
         }
         .uc-history-section {
-            margin: 64px auto 0 auto;
-            max-width: 1200px;
+            margin: 0px auto 0 auto;
+            max-width: 1545px;
             padding: 0 24px 48px 24px;
         }
         .uc-history-title {
@@ -542,7 +544,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
         .uc-history-card {
             display: flex;
             flex-direction: row;
-            width: 380px;
+            width: 365px;
             min-height: 110px;
             background: linear-gradient(135deg,#f3e8ff 0%,#e0c3fc 100%);
             border-radius: 18px;
@@ -649,6 +651,113 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
                 min-width: 0;
             }
         }
+        .profile-toast {
+            position: fixed;
+            left: 50%;
+            top: 18%;
+            transform: translate(-50%, 0);
+            background: rgba(162,89,230,0.95);
+            color: #fff;
+            padding: 14px 32px;
+            border-radius: 18px;
+            font-size: 1.15em;
+            font-weight: 600;
+            z-index: 99999;
+            box-shadow: 0 2px 16px rgba(162,89,230,0.13);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .profile-toast i {
+            font-size: 1.2em;
+        }
+        .uc-info-flex-wrap {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 38px;
+            width: 100%;
+        }
+        .uc-info-avatar-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 140px;
+            max-width: 180px;
+        }
+        .uc-info-main-side {
+            flex: 1 1 0%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .uc-info-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px 28px;
+            width: 100%;
+            align-items: end;
+        }
+        .uc-info-form-grid .uc-form-row-bio,
+        .uc-info-form-grid .uc-info-form-actions {
+            grid-column: 1 / span 2;
+        }
+        .uc-avatar-img, .uc-avatar-img-empty {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e0c3fc;
+            box-shadow: 0 4px 10px rgba(162, 89, 230, 0.1);
+            border: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8em;
+            color: #a259e6;
+            font-weight: bold;
+        }
+        .uc-avatar-upload-btn {
+            margin-top: 32px;
+        }
+        .uc-password-form-3col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 18px 24px;
+            width: 100%;
+            max-width: 1545px;
+            align-items: end;
+        }
+        .uc-password-form-3col .uc-form-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0;
+        }
+        .uc-password-form-3col label {
+            min-width: 70px;
+            color: #a259e6;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        .uc-password-form-3col input {
+            flex: 1 1 0%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1.5px solid #e0c3fc;
+            background: #f8f3ff;
+            font-size: 1.08em;
+            color: #a259e6;
+        }
+        .uc-password-form-3col button {
+            height: 44px;
+            margin-top: 0;
+            min-width: 120px;
+        }
     </style>
 </head>
 <body style="background:#f8f3ff;min-height:100vh;">
@@ -669,84 +778,80 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
     <div class="dy-pc-main">
         <!-- 左侧导航 -->
         <div class="dy-pc-sidenav">
-            <a class="dy-pc-sidenav-item" href="index.php"><i class="fa-solid fa-film"></i><span>视频</span></a>
-            <a class="dy-pc-sidenav-item" href="#"><i class="fa-solid fa-music"></i><span>音频</span></a>
+            <a class="dy-pc-sidenav-item" href="index.php"><i class="fa-solid fa-film"></i><span>播放</span></a>
             <a class="dy-pc-sidenav-item active" href="user_center.php" style="cursor:pointer;"><i class="fa-solid fa-user"></i><span>我的</span></a>
             <a href="logout.php" class="dy-pc-sidenav-item" style="color:#a259e6;"><i class="fa-solid fa-sign-out-alt"></i><span>退出</span></a>
         </div>
         <!-- 主内容区 -->
         <div class="dy-pc-center" id="main-content">
             <div class="uc-flex-layout uc-3col-layout">
-                <!-- 左侧：头像与基础信息 -->
-                <div class="uc-profile-card">
-                    <div class="uc-avatar-wrap">
-                        <?php if ($avatar_url): ?>
-                            <img src="<?= htmlspecialchars($avatar_url) ?>" class="uc-avatar-img" alt="头像">
-                        <?php else: ?>
-                            <span class="uc-avatar-img-empty">
-                                <?= htmlspecialchars(strtoupper(mb_substr($username, 0, 1, 'UTF-8'))) ?>
-                            </span>
-                        <?php endif; ?>
-                        <form method="post" enctype="multipart/form-data" class="uc-avatar-form">
-                            <input type="file" name="avatar" accept="image/*" id="avatar-input" style="display:none;" onchange="this.form.submit()">
-                            <label for="avatar-input" class="uc-avatar-upload-btn"><i class="fa fa-camera"></i> 更换头像</label>
-                        </form>
-                    </div>
-                    <div class="uc-profile-info">
-                        <div class="uc-username"><i class="fa fa-user"></i> <?= htmlspecialchars($username) ?></div>
-                        <div class="uc-nickname">昵称：<?= htmlspecialchars($nickname) ?></div>
-                        <div class="uc-regtime">注册时间：<?= htmlspecialchars($create_date) ?></div>
-                        <div class="uc-updatetime">更新时间：<?= htmlspecialchars($update_date) ?></div>
-                    </div>
-                </div>
-                <!-- 中间：详细信息表单 -->
-                <div class="uc-detail-card">
+                <!-- 合并后的个人信息卡片 -->
+                <div class="uc-detail-card" style="max-width:1545px;width:100%;margin:0 auto;align-items:stretch;">
                     <h2>个人信息</h2>
-                    <?php if ($msg): ?><div class="msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
-                    <form method="post" enctype="multipart/form-data" class="uc-info-form">
-                        <div class="uc-form-row">
-                            <label>昵称：</label>
-                            <input type="text" name="nickname" value="<?= htmlspecialchars($nickname) ?>" maxlength="32" required>
+                    <div class="uc-info-flex-wrap">
+                        <div class="uc-info-avatar-side">
+                            <?php if ($avatar_url): ?>
+                                <img src="<?= htmlspecialchars($avatar_url) ?>" class="uc-avatar-img" alt="头像">
+                            <?php else: ?>
+                                <span class="uc-avatar-img-empty">
+                                    <?= htmlspecialchars(strtoupper(mb_substr($username, 0, 1, 'UTF-8'))) ?>
+                                </span>
+                            <?php endif; ?>
+                            <form id="avatar-upload-form" enctype="multipart/form-data" method="post" style="margin:0;padding:0;">
+                                <input type="file" name="avatar" accept="image/*" id="avatar-input" style="display:none;">
+                                <label for="avatar-input" class="uc-avatar-upload-btn"><i class="fa fa-camera"></i> 更换头像</label>
+                            </form>
                         </div>
-                        <div class="uc-form-row">
-                            <label>邮箱：</label>
-                            <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" maxlength="64">
+                        <div class="uc-info-main-side">
+                            <form method="post" enctype="multipart/form-data" class="uc-info-form uc-info-form-grid">
+                                <div class="uc-form-row uc-form-row-bio">
+                                    <label>个人说明：</label>
+                                    <textarea name="bio" rows="2" maxlength="200" style="width:100%;resize:vertical;"><?= htmlspecialchars($bio) ?></textarea>
+                                </div>
+                                <div class="uc-form-row">
+                                    <label>用户名：</label>
+                                    <input type="text" name="username" value="<?= htmlspecialchars($username) ?>" maxlength="32" required>
+                                </div>
+                                <div class="uc-form-row">
+                                    <label>邮箱：</label>
+                                    <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" maxlength="64">
+                                </div>
+                                <div class="uc-form-row">
+                                    <label>性别：</label>
+                                    <select name="gender">
+                                        <option value="">请选择</option>
+                                        <option value="male" <?= $gender=="male"?'selected':'' ?>>男</option>
+                                        <option value="female" <?= $gender=="female"?'selected':'' ?>>女</option>
+                                        <option value="other" <?= $gender=="other"?'selected':'' ?>>保密</option>
+                                    </select>
+                                </div>
+                                <div class="uc-form-row">
+                                    <label>电话：</label>
+                                    <input type="text" name="phone" value="<?= htmlspecialchars($phone) ?>" maxlength="20">
+                                </div>
+                                <div style="display:flex;gap:18px;width:100%;justify-content:space-between;align-items:center;grid-column:1/span 2;">
+                                    <span class="uc-regtime">注册时间：<?= htmlspecialchars($create_date) ?></span>
+                                    <button type="submit" class="uc-save-btn" style="max-width:180px;min-width:120px;">保存修改</button>
+                                    <span class="uc-updatetime">更新时间：<?= htmlspecialchars($update_date) ?></span>
+                                </div>
+                            </form>
                         </div>
-                        <div class="uc-form-row">
-                            <label>性别：</label>
-                            <select name="gender">
-                                <option value="">请选择</option>
-                                <option value="male" <?= $gender=="male"?'selected':'' ?>>男</option>
-                                <option value="female" <?= $gender=="female"?'selected':'' ?>>女</option>
-                                <option value="other" <?= $gender=="other"?'selected':'' ?>>保密</option>
-                            </select>
-                        </div>
-                        <div class="uc-form-row">
-                            <label>电话：</label>
-                            <input type="text" name="phone" value="<?= htmlspecialchars($phone) ?>" maxlength="20">
-                        </div>
-                        <div class="uc-form-row">
-                            <label>简介：</label>
-                            <textarea name="bio" rows="2" maxlength="200" style="width:100%;resize:vertical;"><?= htmlspecialchars($bio) ?></textarea>
-                        </div>
-                        <button type="submit" class="uc-save-btn">保存修改</button>
-                    </form>
+                    </div>
                 </div>
-                <!-- 右侧：修改密码表单 -->
-                <div class="uc-password-card">
-                    <h2>修改密码</h2>
-                    <form method="post" class="uc-password-form">
-                        <div class="uc-form-row">
-                            <label>原密码</label>
-                            <input type="password" name="old_password" placeholder="原密码" required>
-                        </div>
-                        <div class="uc-form-row">
-                            <label>新密码</label>
-                            <input type="password" name="new_password" placeholder="新密码" required>
-                        </div>
-                        <button type="submit" class="uc-save-btn">重置密码</button>
-                    </form>
-                </div>
+            </div>
+            <!-- 重置密码卡片 -->
+            <div class="uc-detail-card" style="max-width:1545px;width:93%;align-items:center;margin:32px auto 0 auto;">
+                <form method="post" class="uc-password-form uc-password-form-3col" style="max-width:1545px">
+                    <div class="uc-form-row">
+                        <label>原密码</label>
+                        <input type="password" name="old_password" placeholder="原密码" required>
+                    </div>
+                    <div class="uc-form-row">
+                        <label>新密码</label>
+                        <input type="password" name="new_password" placeholder="新密码" required>
+                    </div>
+                    <button type="submit" class="uc-save-btn">重置密码</button>
+                </form>
             </div>
             <!-- 播放记录区域 -->
             <div class="uc-history-section">
@@ -777,5 +882,75 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             </div>
         </div>
     </div>
+    <div id="profile-toast" class="profile-toast" style="display:none;"><i class="fa-solid fa-circle-check"></i> 保存成功</div>
+    <script>
+    function showProfileToast(msg) {
+        var toast = document.getElementById('profile-toast');
+        toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+        toast.style.display = 'flex';
+        toast.style.opacity = 1;
+        setTimeout(function(){
+            toast.style.opacity = 0;
+            setTimeout(function(){ toast.style.display = 'none'; }, 300);
+        }, 1200);
+    }
+    // 个人信息和个人说明表单AJAX提交
+    document.querySelectorAll('.uc-info-form').forEach(function(form){
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var fd = new FormData(form);
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: fd
+            }).then(function(r){
+                if(r.ok) return r.text();
+                throw new Error('网络错误');
+            }).then(function(){
+                showProfileToast('保存成功');
+            }).catch(function(){
+                showProfileToast('保存失败');
+            });
+        });
+    });
+    // 重置密码表单AJAX提交
+    document.querySelectorAll('.uc-password-form').forEach(function(form){
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var fd = new FormData(form);
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: fd
+            }).then(function(r){
+                if(r.ok) return r.text();
+                throw new Error('网络错误');
+            }).then(function(){
+                showProfileToast('重置密码成功');
+            }).catch(function(){
+                showProfileToast('重置失败');
+            });
+        });
+    });
+    // 更换头像表单AJAX提交
+    var avatarForm = document.getElementById('avatar-upload-form');
+    if (avatarForm) {
+        var avatarInput = document.getElementById('avatar-input');
+        avatarInput.addEventListener('change', function(e){
+            if (!avatarInput.files.length) return;
+            var fd = new FormData(avatarForm);
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: fd
+            }).then(function(r){
+                if(r.ok) return r.text();
+                throw new Error('网络错误');
+            }).then(function(){
+                showProfileToast('更换头像成功');
+                setTimeout(function(){ location.reload(); }, 1200);
+            }).catch(function(){
+                showProfileToast('更换头像失败');
+            });
+        });
+    }
+    </script>
 </body>
 </html> 
