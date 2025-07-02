@@ -422,7 +422,6 @@ $is_login = isset($_SESSION['user_id']);
     <!-- 顶部导航栏 -->
     <div class="dy-pc-header">
         <div class="dy-pc-logo"><i class="fa-solid fa-music"></i> 媒体播放器</div>
-        <div class="dy-pc-search"><input type="text" placeholder="搜索用户、视频、音乐" /><i class="fa-solid fa-search search-icon"></i></div>
         <div class="dy-pc-header-actions">
             <button class="dy-pc-header-btn" id="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
             <button class="dy-pc-header-btn"><i class="fa-regular fa-message"></i> 消息</button>

@@ -115,8 +115,14 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
         html, body { height: 100%; margin: 0; padding: 0; }
         body { background:linear-gradient(135deg,#f3e8ff 0%,#e0c3fc 100%); font-family:'Segoe UI',Arial,sans-serif; }
         .dy-pc-main {
-            display:flex;flex-direction:row;justify-content:center;align-items:flex-start;
-            width:100vw;max-width:100vw;margin-top:280px;height:calc(100vh - 80px);
+            display:flex;
+            flex-direction:row;
+            justify-content:center;
+            align-items:flex-start;
+            width:100vw;
+            max-width:100vw;
+            margin-top:80px; /* 距离顶部导航栏80px */
+            min-height:calc(100vh - 80px);
             transition:all 0.4s cubic-bezier(.4,0,.2,1);
         }
         .dy-pc-center {
@@ -801,6 +807,13 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
                                 <input type="file" name="avatar" accept="image/*" id="avatar-input" style="display:none;">
                                 <label for="avatar-input" class="uc-avatar-upload-btn"><i class="fa fa-camera"></i> 更换头像</label>
                             </form>
+                            <?php
+                            // 查询粉丝数
+                            $fans_count = $db->querySingle("SELECT COUNT(*) FROM follows WHERE following_id = $user_id");
+                            ?>
+                            <div style="margin-top:18px;font-size:1.08em;color:#a259e6;font-weight:600;text-align:center;">
+                                <i class="fa fa-users"></i> 粉丝数：<?= $fans_count ?>
+                            </div>
                         </div>
                         <div class="uc-info-main-side">
                             <form method="post" enctype="multipart/form-data" class="uc-info-form uc-info-form-grid">
@@ -855,7 +868,7 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
             </div>
             <!-- 播放记录区域 -->
             <div class="uc-history-section">
-                <h2 class="uc-history-title"><i class="fa fa-history"></i> 播放记录</h2>
+                <h2 class="uc-history-title"><i class="fa fa-history"></i> 播放记录 <span style="font-size:0.75em;color:#6b38b1;font-weight:400;">(<?= count($play_records) ?>)</span></h2>
                 <div class="uc-history-list">
                     <?php if (empty($play_records)): ?>
                         <div class="uc-history-empty">暂无播放记录</div>
@@ -876,6 +889,161 @@ while ($row = $play_res->fetchArray(SQLITE3_ASSOC)) {
                                 </div>
                             </div>
                         </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <!-- 我的作品区域 -->
+            <?php
+            // 查询当前用户的作品
+            $my_works = [];
+            $works_stmt = $db->prepare('SELECT id, media_url, description, tags, media_type, created_at FROM media WHERE creator_id = :uid ORDER BY created_at DESC LIMIT 20');
+            $works_stmt->bindValue(':uid', $user_id, SQLITE3_INTEGER);
+            $works_res = $works_stmt->execute();
+            while ($row = $works_res->fetchArray(SQLITE3_ASSOC)) {
+                $my_works[] = $row;
+            }
+            ?>
+            <div class="uc-history-section">
+                <h2 class="uc-history-title"><i class="fa fa-folder-open"></i> 我的作品 <span style="font-size:0.75em;color:#6b38b1;font-weight:400;">(<?= count($my_works) ?>)</span></h2>
+                <div class="uc-history-list">
+                    <?php if (empty($my_works)): ?>
+                        <div class="uc-history-empty">暂无作品</div>
+                    <?php else: ?>
+                        <?php foreach ($my_works as $work): ?>
+                        <a class="uc-history-card" href="index.php?file=<?= urlencode(basename($work['media_url'])) ?>" target="_blank">
+                            <div class="uc-history-thumb-wrap">
+                                <video class="uc-history-thumb" src="<?= htmlspecialchars($work['media_url']) ?>" preload="metadata"></video>
+                            </div>
+                            <div class="uc-history-info">
+                                <div class="uc-history-title-row">
+                                    <span class="uc-history-video-title"><?= htmlspecialchars(basename($work['media_url'])) ?></span>
+                                </div>
+                                <div class="uc-history-desc"><?= htmlspecialchars($work['description']) ?></div>
+                                <div class="uc-history-meta">
+                                    <span class="uc-history-tags">#<?= htmlspecialchars($work['tags']) ?></span>
+                                    <span class="uc-history-time"><i class="fa fa-clock"></i> <?= htmlspecialchars($work['created_at']) ?></span>
+                                </div>
+                            </div>
+                        </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php
+            // 查询当前用户喜欢的作品
+            $fav_works = [];
+            $fav_stmt = $db->prepare('SELECT m.id, m.media_url, m.description, m.tags, m.media_type, m.created_at FROM favorites f JOIN media m ON f.media_id = m.id WHERE f.user_id = :uid ORDER BY f.created_at DESC LIMIT 20');
+            $fav_stmt->bindValue(':uid', $user_id, SQLITE3_INTEGER);
+            $fav_res = $fav_stmt->execute();
+            while ($row = $fav_res->fetchArray(SQLITE3_ASSOC)) {
+                $fav_works[] = $row;
+            }
+            ?>
+            <div class="uc-history-section">
+                <h2 class="uc-history-title"><i class="fa fa-heart"></i> 喜欢 <span style="font-size:0.75em;color:#6b38b1;font-weight:400;">(<?= count($fav_works) ?>)</span></h2>
+                <div class="uc-history-list">
+                    <?php if (empty($fav_works)): ?>
+                        <div class="uc-history-empty">暂无喜欢</div>
+                    <?php else: ?>
+                        <?php foreach ($fav_works as $fav): ?>
+                        <a class="uc-history-card" href="index.php?file=<?= urlencode(basename($fav['media_url'])) ?>" target="_blank">
+                            <div class="uc-history-thumb-wrap">
+                                <video class="uc-history-thumb" src="<?= htmlspecialchars($fav['media_url']) ?>" preload="metadata"></video>
+                            </div>
+                            <div class="uc-history-info">
+                                <div class="uc-history-title-row">
+                                    <span class="uc-history-video-title"><?= htmlspecialchars(basename($fav['media_url'])) ?></span>
+                                </div>
+                                <div class="uc-history-desc"><?= htmlspecialchars($fav['description']) ?></div>
+                                <div class="uc-history-meta">
+                                    <span class="uc-history-tags">#<?= htmlspecialchars($fav['tags']) ?></span>
+                                    <span class="uc-history-time"><i class="fa fa-clock"></i> <?= htmlspecialchars($fav['created_at']) ?></span>
+                                </div>
+                            </div>
+                        </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php
+            // 查询当前用户点赞的作品
+            $like_works = [];
+            $like_stmt = $db->prepare('SELECT m.id, m.media_url, m.description, m.tags, m.media_type, m.created_at FROM likes l JOIN media m ON l.media_id = m.id WHERE l.user_id = :uid ORDER BY l.created_at DESC LIMIT 20');
+            $like_stmt->bindValue(':uid', $user_id, SQLITE3_INTEGER);
+            $like_res = $like_stmt->execute();
+            while ($row = $like_res->fetchArray(SQLITE3_ASSOC)) {
+                $like_works[] = $row;
+            }
+            ?>
+            <div class="uc-history-section">
+                <h2 class="uc-history-title"><i class="fa fa-thumbs-up"></i> 点赞 <span style="font-size:0.75em;color:#6b38b1;font-weight:400;">(<?= count($like_works) ?>)</span></h2>
+                <div class="uc-history-list">
+                    <?php if (empty($like_works)): ?>
+                        <div class="uc-history-empty">暂无点赞</div>
+                    <?php else: ?>
+                        <?php foreach ($like_works as $like): ?>
+                        <a class="uc-history-card" href="index.php?file=<?= urlencode(basename($like['media_url'])) ?>" target="_blank">
+                            <div class="uc-history-thumb-wrap">
+                                <video class="uc-history-thumb" src="<?= htmlspecialchars($like['media_url']) ?>" preload="metadata"></video>
+                            </div>
+                            <div class="uc-history-info">
+                                <div class="uc-history-title-row">
+                                    <span class="uc-history-video-title"><?= htmlspecialchars(basename($like['media_url'])) ?></span>
+                                </div>
+                                <div class="uc-history-desc"><?= htmlspecialchars($like['description']) ?></div>
+                                <div class="uc-history-meta">
+                                    <span class="uc-history-tags">#<?= htmlspecialchars($like['tags']) ?></span>
+                                    <span class="uc-history-time"><i class="fa fa-clock"></i> <?= htmlspecialchars($like['created_at']) ?></span>
+                                </div>
+                            </div>
+                        </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php
+            // 查询当前用户关注的用户
+            $followings = [];
+            $follow_stmt = $db->prepare('SELECT u.id, u.avatar_url, u.username, u.bio, u.email, u.gender, u.phone, u.create_date FROM follows f JOIN users u ON f.following_id = u.id WHERE f.follower_id = :uid ORDER BY f.created_at DESC LIMIT 20');
+            $follow_stmt->bindValue(':uid', $user_id, SQLITE3_INTEGER);
+            $follow_res = $follow_stmt->execute();
+            while ($row = $follow_res->fetchArray(SQLITE3_ASSOC)) {
+                $followings[] = $row;
+            }
+            ?>
+            <div class="uc-history-section">
+                <h2 class="uc-history-title"><i class="fa fa-user-plus"></i> 关注 <span style="font-size:0.75em;color:#6b38b1;font-weight:400;">(<?= count($followings) ?>)</span></h2>
+                <div class="uc-history-list">
+                    <?php if (empty($followings)): ?>
+                        <div class="uc-history-empty">暂无关注</div>
+                    <?php else: ?>
+                        <?php foreach ($followings as $user): ?>
+                        <div class="uc-history-card" style="flex-direction:row;align-items:center;">
+                            <div class="uc-history-thumb-wrap" style="width:80px;height:80px;">
+                                <?php if (!empty($user['avatar_url'])): ?>
+                                    <img src="<?= htmlspecialchars($user['avatar_url']) ?>" alt="头像" style="width:100%;height:100%;object-fit:cover;border-radius:50%;background:#e0c3fc;">
+                                <?php else: ?>
+                                    <span class="uc-avatar-img-empty" style="width:100%;height:100%;font-size:2.2em;display:flex;align-items:center;justify-content:center;background:#e0c3fc;color:#a259e6;">
+                                        <?= htmlspecialchars(mb_substr($user['username'],0,1,'UTF-8')) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="uc-history-info" style="justify-content:center;">
+                                <div class="uc-history-title-row">
+                                    <span class="uc-history-video-title"><?= htmlspecialchars($user['username']) ?></span>
+                                </div>
+                                <div class="uc-history-desc" style="white-space:normal;max-width:220px;overflow:hidden;text-overflow:ellipsis;">
+                                    <?= htmlspecialchars($user['bio']) ?>
+                                </div>
+                                <div class="uc-history-meta">
+                                    <span class="uc-history-tags">邮箱：<?= htmlspecialchars($user['email']) ?></span>
+                                    <span class="uc-history-tags">性别：<?= htmlspecialchars($user['gender']) ?></span>
+                                    <span class="uc-history-tags">电话：<?= htmlspecialchars($user['phone']) ?></span>
+                                    <span class="uc-history-time"><i class="fa fa-clock"></i> <?= htmlspecialchars($user['create_date']) ?></span>
+                                </div>
+                            </div>
+                        </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>

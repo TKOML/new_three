@@ -49,8 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media'])) {
         $error = '文件上传失败';
     }
 }
+// 获取所有媒体文件，顺序与数据库一致
+$all_media_files = [];
+if (!$db) {
+    $db = new SQLite3(__DIR__ . '/ntbfq.sqlite');
+}
+$res = $db->query('SELECT media_url FROM media ORDER BY id ASC');
+while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
+    $all_media_files[] = basename($row['media_url']);
+}
+// 当前播放文件
 $mediaFile = isset($_GET['file']) ? $_GET['file'] : '';
 $mediaUrl = $mediaFile ? 'uploads/' . $mediaFile : '';
+if (empty($mediaFile) && !empty($all_media_files)) {
+    $mediaFile = $all_media_files[0];
+    $mediaUrl = 'uploads/' . $mediaFile;
+}
+$currentIndex = array_search($mediaFile, $all_media_files);
+$prevFile = ($currentIndex !== false && $currentIndex > 0) ? $all_media_files[$currentIndex-1] : (count($all_media_files) > 0 ? $all_media_files[count($all_media_files)-1] : null);
+$nextFile = ($currentIndex !== false && $currentIndex < count($all_media_files)-1) ? $all_media_files[$currentIndex+1] : (count($all_media_files) > 0 ? $all_media_files[0] : null);
 // 记录播放历史（GET 方式访问文件时）
 if ($mediaFile) {
     if ($db && isset($_SESSION['user_id'])) {
@@ -618,6 +635,138 @@ $is_login = isset($_SESSION['user_id']);
             accent-color:#a259e6;
         }
         @media (max-width:700px){#audio-progress-bar{width:120px;}}
+        #upload-form button[type="submit"] {
+            background: linear-gradient(90deg, #e0c3fc 0%, #d291ff 100%);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 0;
+            font-size: 1.15em;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(162,89,230,0.13);
+            transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+            margin-top: 10px;
+            letter-spacing: 1px;
+            outline: none;
+        }
+        #upload-form button[type="submit"]:hover, #upload-form button[type="submit"]:focus {
+            background: linear-gradient(90deg, #d291ff 0%, #e0c3fc 100%);
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 32px rgba(162,89,230,0.18);
+        }
+        #upload-form input[type="file"] {
+            display: none;
+        }
+        #upload-form .custom-file-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(90deg, #d291ff 0%, #ffb6ec 100%);
+            color: #fff;
+            border-radius: 14px;
+            padding: 14px 0;
+            font-size: 1.08em;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(162,89,230,0.10);
+            margin-bottom: 8px;
+            transition: background 0.18s, transform 0.18s;
+            border: none;
+            outline: none;
+            letter-spacing: 1px;
+            gap: 10px;
+        }
+        #upload-form .custom-file-label:hover, #upload-form .custom-file-label:focus {
+            background: linear-gradient(90deg, #ffb6ec 0%, #d291ff 100%);
+            transform: translateY(-2px) scale(1.03);
+        }
+        #upload-form .file-name {
+            margin-left: 12px;
+            color: #a259e6;
+            font-size: 0.98em;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        /* 优化音频播放区按钮和进度条样式 */
+        #audio-custom-controls {
+            position: absolute;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            width: 96%;
+            background: rgba(255,255,255,0.92);
+            border-radius: 14px;
+            padding: 14px 10px 10px 10px;
+            box-shadow: 0 2px 12px rgba(162,89,230,0.10);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 10;
+        }
+        #audio-custom-controls .switch-btn, #audio-custom-controls .play-pause-btn, #audio-custom-controls .seek-btn {
+            min-width: 40px;
+            min-height: 40px;
+            font-size: 1.2em;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg,#a259e6 60%,#e0c3fc 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(162,89,230,0.10);
+            cursor: pointer;
+            transition: background 0.18s, transform 0.12s;
+            outline: none;
+            margin: 0 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #audio-custom-controls .play-pause-btn {
+            background: #a259e6;
+            color: #fff;
+            font-size: 1.5em;
+            min-width: 48px;
+            min-height: 48px;
+        }
+        #audio-custom-controls .switch-btn:hover, #audio-custom-controls .play-pause-btn:hover {
+            background: linear-gradient(135deg,#8f5fe8 60%,#a259e6 100%);
+            transform: scale(1.08);
+        }
+        #audio-custom-controls .progress-bar-wrap {
+            flex: 1 1 220px;
+            min-width: 120px;
+            max-width: 340px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #audio-progress-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0c3fc;
+            accent-color: #a259e6;
+            outline: none;
+        }
+        #audio-current-time, #audio-duration {
+            font-family: monospace;
+            font-size: 1em;
+            color: #a259e6;
+            font-weight: 600;
+        }
+        @media (max-width: 700px) {
+            #audio-custom-controls {
+                flex-direction: column;
+                gap: 8px;
+                padding: 10px 4px 8px 4px;
+            }
+            #audio-custom-controls .progress-bar-wrap {
+                min-width: 80px;
+                max-width: 98vw;
+            }
+        }
     </style>
 </head>
 <body style="background:#f8f3ff;min-height:100vh;">
@@ -625,12 +774,10 @@ $is_login = isset($_SESSION['user_id']);
     <div class="dy-pc-header">
         <div class="dy-pc-logo"><i class="fa-solid fa-music"></i> 媒体播放器</div>
         <div class="dy-pc-search">
-            <input type="text" placeholder="搜索用户、视频、音乐" />
-            <i class="fa-solid fa-search search-icon"></i>
+         
         </div>
         <div class="dy-pc-header-actions">
             <button class="dy-pc-header-btn" id="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
-            <button class="dy-pc-header-btn"><i class="fa-solid fa-gem"></i> 创作者中心</button>
             <?php if ($is_login): ?>
                 <span class="dy-pc-avatar"><?= htmlspecialchars($user_avatar) ?></span>
                 <a href="logout.php" class="dy-pc-login">退出</a>
@@ -778,16 +925,24 @@ $is_login = isset($_SESSION['user_id']);
     <div id="upload-modal" style="display:none;position:fixed;z-index:10000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
         <form id="upload-form" method="post" enctype="multipart/form-data" style="background:linear-gradient(135deg,#f3e8ff 0%,#e0c3fc 100%);padding:32px 28px;border-radius:18px;box-shadow:0 8px 48px 0 rgba(162,89,230,0.18),0 1.5px 8px rgba(162,89,230,0.10);min-width:340px;max-width:96vw;display:flex;flex-direction:column;gap:18px;position:relative;">
             <span style="position:absolute;right:18px;top:12px;font-size:1.5em;cursor:pointer;color:#a259e6;transition:color 0.18s;" onmouseover="this.style.color='#1976d2'" onmouseout="this.style.color='#a259e6'" onclick="closeUploadModal()">&times;</span>
-            <h2 style="text-align:center;color:#a259e6;margin-bottom:8px;letter-spacing:1px;">上传视频</h2>
-            <input type="file" name="media" accept="video/mp4,video/webm,video/ogg,audio/mp3,audio/mpeg" required style="padding:10px 0 10px 0;border-radius:8px;border:1.5px solid #b0bec5;background:#fff;">
+            <h2 style="text-align:center;color:#a259e6;margin-bottom:8px;letter-spacing:1px;">上传视频/音频</h2>
+            <label class="custom-file-label"><i class="fa-solid fa-cloud-arrow-up"></i> 选择文件
+                <input type="file" name="media" accept="video/mp4,video/webm,video/ogg,audio/mp3,audio/mpeg" required onchange="document.getElementById('file-name').textContent = this.files[0] ? this.files[0].name : ''">
+                <span class="file-name" id="file-name"></span>
+            </label>
             <input type="text" name="description" placeholder="视频描述（可选）" maxlength="100" style="padding:10px 14px;border-radius:8px;border:1.5px solid #b0bec5;background:#f8fafc;">
             <input type="text" name="tags" placeholder="标签（逗号分隔，可选）" maxlength="50" style="padding:10px 14px;border-radius:8px;border:1.5px solid #b0bec5;background:#f8fafc;">
-            <button type="submit" style="background:linear-gradient(90deg,#a259e6 60%,#42a5f5 100%);color:#fff;border:none;border-radius:8px;padding:12px 0;font-size:1.08em;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(162,89,230,0.10);transition:background 0.18s;">上传</button>
+            <button type="submit">上传</button>
         </form>
     </div>
     <script>
     document.getElementById('upload-btn').onclick = function(){
+        <?php if ($is_login): ?>
         document.getElementById('upload-modal').style.display = 'flex';
+        <?php else: ?>
+        document.getElementById('login-modal').style.display = 'flex';
+        document.getElementById('register-modal').style.display = 'none';
+        <?php endif; ?>
     };
     function closeUploadModal(){
         document.getElementById('upload-modal').style.display = 'none';
@@ -819,15 +974,7 @@ $is_login = isset($_SESSION['user_id']);
                         <?php if (preg_match('/\.(mp4|webm|ogg)$/i', $mediaFile)): ?>
                             <video id="media" src="<?= htmlspecialchars($mediaUrl) ?>" playsinline></video>
                             <div class="custom-controls" id="custom-controls">
-                                <?php
-                                $files = array_values(array_filter(scandir(__DIR__ . '/uploads'), function($f) {
-                                    return preg_match('/\.(mp4|webm|ogg)$/i', $f);
-                                }));
-                                $currentIndex = array_search($mediaFile, $files);
-                                $prevFile = ($currentIndex !== false && $currentIndex > 0) ? $files[$currentIndex-1] : null;
-                                $nextFile = ($currentIndex !== false && $currentIndex < count($files)-1) ? $files[$currentIndex+1] : null;
-                                ?>
-                                <a href="?file=<?= urlencode($prevFile) ?>" class="switch-btn" <?= $prevFile?'':'style="opacity:.3;pointer-events:none;"' ?> title="上一条"><i class="fa-solid fa-angle-left"></i></a>
+                                <a href="?file=<?= urlencode($prevFile) ?>" class="switch-btn" title="上一条"><i class="fa-solid fa-angle-left"></i></a>
                                 <button type="button" class="seek-btn" id="seek-backward" title="快退10秒"><i class="fa-solid fa-backward"></i></button>
                                 <button id="play-pause-btn" class="play-pause-btn"><i class="fa-solid fa-play"></i></button>
                                 <div class="progress-bar-wrap">
@@ -835,7 +982,7 @@ $is_login = isset($_SESSION['user_id']);
                                     <span id="current-time">00:00</span> / <span id="duration">00:00</span>
                                 </div>
                                 <button type="button" class="seek-btn" id="seek-forward" title="快进10秒"><i class="fa-solid fa-forward"></i></button>
-                                <a href="?file=<?= urlencode($nextFile) ?>" class="switch-btn" <?= $nextFile?'':'style="opacity:.3;pointer-events:none;"' ?> title="下一条"><i class="fa-solid fa-angle-right"></i></a>
+                                <a href="?file=<?= urlencode($nextFile) ?>" class="switch-btn" title="下一条"><i class="fa-solid fa-angle-right"></i></a>
                             </div>
                             <script>
                             const video = document.getElementById('media');
@@ -882,26 +1029,18 @@ $is_login = isset($_SESSION['user_id']);
                                 if (video) video.currentTime = Math.min(video.duration, video.currentTime + 10);
                             };
                             </script>
-                        <?php elseif (preg_match('/\.(mp3|wav|aac|m4a)$/i', $mediaFile)):
-                            // 获取音频文件列表和当前索引
-                            $audioFiles = array_values(array_filter(scandir(__DIR__ . '/uploads'), function($f) {
-                                return preg_match('/\.(mp3|wav|aac|m4a)$/i', $f);
-                            }));
-                            $audioIndex = array_search($mediaFile, $audioFiles);
-                            $prevAudio = ($audioIndex !== false && $audioIndex > 0) ? $audioFiles[$audioIndex-1] : null;
-                            $nextAudio = ($audioIndex !== false && $audioIndex < count($audioFiles)-1) ? $audioFiles[$audioIndex+1] : null;
-                        ?>
+                        <?php elseif (preg_match('/\.(mp3|wav|aac|m4a)$/i', $mediaFile)): ?>
                             <div style="position:relative;text-align:center;">
                               <img src="uploads/media.png" alt="音频背景" style="max-width:100%;height:auto;border-radius:16px;">
                               <audio id="media-audio" src="<?= htmlspecialchars($mediaUrl) ?>" style="display:none;"></audio>
                               <div class="custom-controls" id="audio-custom-controls" style="position:absolute;left:50%;bottom:-50px;transform:translateX(-50%);width:90%;background:rgba(255,255,255,0.85);border-radius:12px;padding:18px 18px 12px 18px;box-shadow:0 2px 12px rgba(162,89,230,0.10);display:flex;align-items:center;gap:18px;">
-                                <a href="?file=<?= urlencode($prevAudio) ?>" class="switch-btn" <?= $prevAudio?'':'style="opacity:.3;pointer-events:none;"' ?> title="上一首"><i class="fa-solid fa-angle-left"></i></a>
+                                <a href="?file=<?= urlencode($prevFile) ?>" class="switch-btn" title="上一首"><i class="fa-solid fa-angle-left"></i></a>
                                 <button id="audio-play-pause-btn" class="play-pause-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#a259e6;"><i class="fa-solid fa-play"></i></button>
                                 <div class="progress-bar-wrap" style="flex:1;display:flex;align-items:center;gap:8px;">
-                                  <input type="range" id="audio-progress-bar" value="0" min="0" max="100" step="0.1" style="width:100%;">
+                                  <input type="range" id="audio-progress-bar" value="0" min="0" max="100" step="0.1">
                                   <span id="audio-current-time">00:00</span> / <span id="audio-duration">00:00</span>
                                 </div>
-                                <a href="?file=<?= urlencode($nextAudio) ?>" class="switch-btn" <?= $nextAudio?'':'style="opacity:.3;pointer-events:none;"' ?> title="下一首"><i class="fa-solid fa-angle-right"></i></a>
+                                <a href="?file=<?= urlencode($nextFile) ?>" class="switch-btn" title="下一首"><i class="fa-solid fa-angle-right"></i></a>
                               </div>
                             </div>
                             <script>
@@ -952,13 +1091,19 @@ $is_login = isset($_SESSION['user_id']);
                         <!-- 视频下方信息 -->
                         <div class="dy-pc-video-info">
                             <div class="dy-pc-title"> <?= htmlspecialchars($mediaFile) ?> </div>
-                            <div class="dy-pc-desc">这里是视频描述和标签 #标签1 #标签2</div>
+                            <div class="dy-pc-desc">媒体播放器 #标签1 #标签2</div>
                             <div class="dy-pc-music"><i class="fa-solid fa-music"></i> 配乐：热门音乐</div>
                         </div>
                     </div>
                 </div>
             <?php else: ?>
-                <div class="dy-pc-empty">请上传或选择一个视频进行播放</div>
+                <div class="dy-pc-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0 80px 0;">
+                    <div style="font-size:4em;color:#e0c3fc;margin-bottom:18px;">
+                        <i class="fa-regular fa-folder-open"></i>
+                    </div>
+                    <div style="font-size:1.35em;color:#a259e6;font-weight:600;margin-bottom:8px;">暂时没有视频/音频</div>
+                    <div style="color:#b39ddb;font-size:1.08em;">请上传或选择一个视频进行播放</div>
+                </div>
             <?php endif; ?>
         </div>
         <!-- 右侧评论区 -->
