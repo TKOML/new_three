@@ -630,6 +630,9 @@ $is_login = isset($_SESSION['user_id']);
             pointer-events: none;
             transition: opacity 0.25s;
         }
+        .dy-pc-action-btn.active { color: #e57373; background: #f3e8ff; }
+        .dy-pc-action-btn.active .fa-star { color: #ffd600; }
+        .dy-pc-action-btn.active .fa-heart { color: #e57373; }
         #audio-progress-bar {
             width:320px;height:6px;border-radius:4px;background:#e0c3fc;outline:none;
             accent-color:#a259e6;
@@ -774,7 +777,7 @@ $is_login = isset($_SESSION['user_id']);
     <div class="dy-pc-header">
         <div class="dy-pc-logo"><i class="fa-solid fa-music"></i> 媒体播放器</div>
         <div class="dy-pc-search">
-         
+            <!-- 保持简洁，无搜索框 -->
         </div>
         <div class="dy-pc-header-actions">
             <button class="dy-pc-header-btn" id="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
@@ -1082,12 +1085,42 @@ $is_login = isset($_SESSION['user_id']);
                             <p>不支持的文件类型。</p>
                         <?php endif; ?>
                         <!-- 视频右侧浮动操作按钮 -->
+                        <?php
+                        // 获取点赞数
+                        $like_count = 0;
+                        $fav_count = 0;
+                        $comment_count = 0;
+                        if ($db && $media_id) {
+                            $like_count = $db->querySingle("SELECT COUNT(*) FROM likes WHERE media_id = " . intval($media_id));
+                            $fav_count = $db->querySingle("SELECT COUNT(*) FROM favorites WHERE media_id = " . intval($media_id));
+                            $comment_count = $db->querySingle("SELECT COUNT(*) FROM comments WHERE media_id = " . intval($media_id));
+                        }
+                        ?>
                         <div class="dy-pc-actions">
-                            <button class="dy-pc-action-btn" title="点赞"><i class="fa-solid fa-heart"></i><span>99</span><div class="dy-pc-tooltip">点赞</div></button>
-                            <button class="dy-pc-action-btn" id="dy-comment-btn" onclick="toggleDyComment()" title="评论"><i class="fa-solid fa-comment"></i><span>88</span><div class="dy-pc-tooltip">评论</div></button>
-                            <button class="dy-pc-action-btn" title="收藏"><i class="fa-solid fa-star"></i><span>77</span><div class="dy-pc-tooltip">收藏</div></button>
-                            <button class="dy-pc-action-btn" onclick="navigator.clipboard.writeText(location.href)" title="分享"><i class="fa-solid fa-share"></i><span>99</span><div class="dy-pc-tooltip">分享</div></button>
+                            <button class="dy-pc-action-btn<?= $is_like ? ' active' : '' ?>" id="like-btn" title="点赞"><i class="fa-solid fa-heart"></i><span id="like-count"><?= $like_count ?></span><div class="dy-pc-tooltip">点赞</div></button>
+                            <button class="dy-pc-action-btn" id="dy-comment-btn" onclick="toggleDyComment()" title="评论"><i class="fa-solid fa-comment"></i><span><?= $comment_count ?></span><div class="dy-pc-tooltip">评论</div></button>
+                            <button class="dy-pc-action-btn<?= $is_fav ? ' active' : '' ?>" id="fav-btn" title="收藏"><i class="fa-solid fa-star"></i><span id="fav-count"><?= $fav_count ?></span><div class="dy-pc-tooltip">收藏</div></button>
+                            <button class="dy-pc-action-btn" onclick="navigator.clipboard.writeText(location.href)" title="分享"><i class="fa-solid fa-share"></i><span>分享</span><div class="dy-pc-tooltip">分享</div></button>
                         </div>
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var likeBtn = document.getElementById('like-btn');
+                            var favBtn = document.getElementById('fav-btn');
+                            var isLogin = <?= $is_login ? 'true' : 'false' ?>;
+                            var file = "<?= addslashes($mediaFile) ?>";
+                            likeBtn && likeBtn.addEventListener('click', function() {
+                                if(!isLogin){alert('请先登录！');return;}
+                                fetch('index.php?file='+encodeURIComponent(file)+'&like=<?= $is_like ? '0' : '1' ?>')
+                                    .then(r=>r.text()).then(()=>location.reload());
+                            });
+                            favBtn && favBtn.addEventListener('click', function() {
+                                if(!isLogin){alert('请先登录！');return;}
+                                fetch('index.php?file='+encodeURIComponent(file)+'&fav=<?= $is_fav ? '0' : '1' ?>')
+                                    .then(r=>r.text()).then(()=>location.reload());
+                            });
+                        });
+                        </script>
+
                         <!-- 视频下方信息 -->
                         <div class="dy-pc-video-info">
                             <div class="dy-pc-title"> <?= htmlspecialchars($mediaFile) ?> </div>
